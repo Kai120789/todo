@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: youruser
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: taskdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - task-net
+
+  api:
+    build: .
+    container_name: todo
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_USER: youruser
+      DB_PASSWORD: yourpassword
+      DB_NAME: taskdb
+    ports:
+      - "8080:8080"
+    networks:
+      - task-net
+
+volumes:
+  db-data:
+
+networks:
+  task-net:
