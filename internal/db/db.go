@@ -34,3 +34,9 @@ func InitDB(password, dbname, host string, port int) error {
 
 	return err
 }
+
+func CloseDB() {
+	if dbpool != nil {
+		dbpool.Close()
+	}
+}

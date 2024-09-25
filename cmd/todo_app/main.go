@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"todo/internal/config"
 	"todo/internal/db"
+	"todo/internal/lib/logger/sl"
+	"todo/internal/routers"
 
 	"github.com/joho/godotenv"
 )
@@ -33,8 +36,19 @@ func main() {
 
 	err := db.InitDB("yourpassword", "taskdb", "localhost", 5431)
 	if err != nil {
-		log.Error("Ошибка инициализации базы данных")
+		log.Error("Ошибка инициализации базы данных", sl.Err(err))
 	}
+
+	defer db.CloseDB()
+
+	router := routers.SetupRouter()
+
+	// Запуск HTTP-сервера
+	log.Info("Запуск сервера на http://localhost:8080")
+	if err := http.ListenAndServe(":8080", router); err != nil {
+		log.Error("Ошибка запуска сервера", sl.Err(err))
+	}
+
 }
 
 func settupLogger(env string) *slog.Logger {

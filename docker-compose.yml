@@ -13,6 +13,21 @@ services:
     networks:
       - task-net
 
+  backend:
+    build: .
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: yourpassword
+      DB_NAME: taskdb
+      DB_HOST: localhost
+      DB_PORT: 5431
+    ports:
+      - "8080:8080"
+    links:
+      - postgres
+
 volumes:
   db-data:
 
