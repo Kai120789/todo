@@ -11,8 +11,8 @@ import (
 
 var dbpool *pgxpool.Pool
 
-func InitDB(password, dbname, host string, port int) error {
-	databaseUrl := fmt.Sprintf("postgres://postgres:%s@%s:%d/%s", password, host, port, dbname)
+func InitDB(user, password, dbname, host string, port int) error {
+	databaseUrl := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", user, password, host, port, dbname)
 
 	//databaseUrl := "postgres://postgres:yourpassword@0.0.0.0:5432/taskdb"
 
@@ -24,7 +24,6 @@ func InitDB(password, dbname, host string, port int) error {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	// Проверяем подключение
 	err = dbpool.Ping(ctx)
 	if err != nil {
 		log.Fatalf("Unable to ping database: %v\n", err)
@@ -39,4 +38,8 @@ func CloseDB() {
 	if dbpool != nil {
 		dbpool.Close()
 	}
+}
+
+func GetDBPool() *pgxpool.Pool {
+	return dbpool
 }

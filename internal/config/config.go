@@ -9,9 +9,11 @@ import (
 
 type Config struct {
 	Env      string `yaml:"env" env-default:"local"`
+	Name     string `yaml:"name" env-default:"local"`
 	User     string `yaml:"user" env-required:"true"`
 	Password string `yaml:"password" env-required:"true"`
-	Host     int64  `yaml:"host" env-default:"5324"`
+	Host     string `yaml:"host" env-default:"localhost"`
+	Port     int64  `yaml:"port" env-default:"5432"`
 }
 
 func MustLoad() *Config {

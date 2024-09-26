@@ -34,7 +34,7 @@ func main() {
 
 	fmt.Println(cfg)
 
-	err := db.InitDB("yourpassword", "taskdb", "localhost", 5431)
+	err := db.InitDB(cfg.User, cfg.Password, cfg.Name, cfg.Host, int(cfg.Port))
 	if err != nil {
 		log.Error("Ошибка инициализации базы данных", sl.Err(err))
 	}
@@ -43,7 +43,6 @@ func main() {
 
 	router := routers.SetupRouter()
 
-	// Запуск HTTP-сервера
 	log.Info("Запуск сервера на http://localhost:8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Error("Ошибка запуска сервера", sl.Err(err))

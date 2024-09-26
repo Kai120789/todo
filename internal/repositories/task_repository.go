@@ -5,14 +5,13 @@ import (
 	"log"
 	"todo/internal/models"
 
-	_ "github.com/lib/pq" // Используем PostgreSQL драйвер
+	_ "github.com/lib/pq"
 )
 
 type TaskRepository struct {
 	db *sql.DB
 }
 
-// NewTaskRepository — конструктор для TaskRepository
 func NewTaskRepository() *TaskRepository {
 	db, err := sql.Open("postgres", "host=localhost port=5432 user=youruser password=yourpassword dbname=taskdb sslmode=disable")
 	if err != nil {
@@ -22,7 +21,6 @@ func NewTaskRepository() *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-// GetTasksByUserID — получение всех задач для конкретного пользователя
 func (repo *TaskRepository) GetTasksByUserID(userID int) ([]models.Task, error) {
 	rows, err := repo.db.Query("SELECT id, title, description, status, created_at, updated_at FROM tasks WHERE user_id = $1", userID)
 	if err != nil {
@@ -42,7 +40,6 @@ func (repo *TaskRepository) GetTasksByUserID(userID int) ([]models.Task, error) 
 	return tasks, nil
 }
 
-// GetTaskByID — получение задачи по ID и userID
 func (repo *TaskRepository) GetTaskByID(userID, taskID int) (*models.Task, error) {
 	row := repo.db.QueryRow("SELECT id, title, description, status, created_at, updated_at FROM tasks WHERE id = $1 AND user_id = $2", taskID, userID)
 

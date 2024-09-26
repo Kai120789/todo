@@ -1,9 +1,11 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"todo/internal/db"
 	"todo/internal/models"
 
 	_ "github.com/lib/pq" // Импорт PostgreSQL драйвера
@@ -25,37 +27,24 @@ func NewUserRepository() *UserRepository {
 	return &UserRepository{db: db}
 }
 
-var userRepo = NewUserRepository()
-
-// CreateUser — создание пользователя
 func CreateUser(user models.User) (int, error) {
 	var id int
-	err := userRepo.db.QueryRow(`
-		INSERT INTO users (username, password) 
-		VALUES ($1, $2) 
-		RETURNING id
-	`, user.Username, user.Password).Scan(&id)
+	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id`
+	err := db.GetDBPool().QueryRow(context.Background(), query, user.Username, user.PasswordHash).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("error creating user: %v", err)
 	}
 	return id, nil
 }
 
-// GetUserByUsername — получение пользователя по имени пользователя
 func GetUserByUsername(username string) (models.User, error) {
 	var user models.User
-	row := userRepo.db.QueryRow(`
-		SELECT id, username, password 
-		FROM users 
-		WHERE username = $1
-	`, username)
-
-	err := row.Scan(&user.ID, &user.Username, &user.Password)
-	if err == sql.ErrNoRows {
-		return user, fmt.Errorf("user not found")
-	} else if err != nil {
-		return user, fmt.Errorf("error fetching user: %v", err)
+	query := `SELECT id, username, password_hash, created_at FROM users WHERE username = $1`
+	err := db.GetDBPool().QueryRow(context.Background(), query, username).Scan(
+		&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt,
+	)
+	if err != nil {
+		return user, fmt.Errorf("error fetching user: %w", err)
 	}
-
 	return user, nil
 }

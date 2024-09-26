@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"todo/internal/models"
 	"todo/internal/repositories"
@@ -21,7 +22,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error creating user", http.StatusInternalServerError)
 		return
 	}
-	user.Password = hashedPassword
+	user.PasswordHash = hashedPassword
 
 	id, err := repositories.CreateUser(user)
 	if err != nil {
@@ -41,8 +42,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Attempting login for user: %s", credentials.Username)
+
 	user, err := repositories.GetUserByUsername(credentials.Username)
-	if err != nil || !utils.CheckPasswordHash(credentials.Password, user.Password) {
+	if err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	log.Printf("User found: %+v", user)
+
+	if !utils.CheckPasswordHash(credentials.Password, user.PasswordHash) {
+		log.Printf("Invalid password for user: %s", credentials.Username)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -53,5 +64,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("User %s logged in successfully", credentials.Username)
 	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }

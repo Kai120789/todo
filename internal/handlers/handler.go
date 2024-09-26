@@ -27,9 +27,8 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 var taskRepo = repositories.NewTaskRepository()
 
-// GetTasks — получение всех задач для текущего пользователя
 func GetTasks(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int) // Извлекаем userID из контекста (добавляется в middleware)
+	userID := r.Context().Value("userID").(int)
 
 	tasks, err := taskRepo.GetTasksByUserID(userID)
 	if err != nil {
@@ -42,7 +41,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(tasks)
 }
 
-// GetTaskByID — получение задачи по ID
 func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("userID").(int)
 	vars := mux.Vars(r)
