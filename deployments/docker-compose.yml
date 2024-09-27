@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    env_file:
+      - ../../todo/.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5431:5432"
+    networks:
+      - task-net
+
+volumes:
+  db-data:
+
+networks:
+  task-net:
