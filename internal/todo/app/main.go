@@ -35,8 +35,6 @@ func StartServer() {
 
 	_ = dbConn
 
-	log.ZapLogger.Sugar().Info("Connect to db!")
-
 	defer dbConn.Close()
 
 }

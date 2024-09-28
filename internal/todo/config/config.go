@@ -14,6 +14,9 @@ type Config struct {
 	DSN             string
 	envSold         string
 	LogLevel        string
+	DbUser          string
+	DbPassword      string
+	DbName          string
 }
 
 var AppConfig Config
@@ -51,6 +54,24 @@ func GetConfig() (*Config, error) {
 		cfg.LogLevel = envLogLevel
 	} else {
 		cfg.LogLevel = zapcore.ErrorLevel.String()
+	}
+
+	if DbUser := os.Getenv("POSTGRES_USER"); DbUser != "" {
+		cfg.DbUser = DbUser
+	} else {
+		flag.StringVar(&cfg.DbUser, "a", "yourdbuser", "user for connect postgres")
+	}
+
+	if DbPassword := os.Getenv("POSTGRES_PASSWORD"); DbPassword != "" {
+		cfg.DbPassword = DbPassword
+	} else {
+		flag.StringVar(&cfg.DbPassword, "a", "yourdbpassword", "password for connect postgres")
+	}
+
+	if DbName := os.Getenv("POSTGRES_DB"); DbName != "" {
+		cfg.DbName = DbName
+	} else {
+		flag.StringVar(&cfg.DbName, "a", "dbname", "postgres dbname")
 	}
 
 	flag.Parse()

@@ -10,7 +10,7 @@ CREATE TABLE users (
 CREATE TABLE boards (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -27,8 +27,7 @@ CREATE TABLE tasks (
     description TEXT,
     board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
     status_id INTEGER REFERENCES statuses(id) ON DELETE SET NULL,
-    owner_id INTEGER REFERENCES users(id),
+    user_id INTEGER REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
