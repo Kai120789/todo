@@ -10,6 +10,9 @@ services:
       - "5431:5432"
     networks:
       - task-net
+  app:
+    depends_on:
+      - postgres
 
 volumes:
   db-data:

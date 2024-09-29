@@ -1,9 +1,11 @@
 package app
 
 import (
-	"fmt"
 	"todo/internal/todo/config"
+	"todo/internal/todo/services"
 	"todo/internal/todo/storage"
+	"todo/internal/todo/transport/http/handler"
+	"todo/internal/todo/transport/http/router"
 	"todo/pkg/logger"
 
 	"go.uber.org/zap"
@@ -17,24 +19,36 @@ func StartServer() {
 		zap.S().Fatalf("get config error", zap.Error(err))
 	}
 
-	fmt.Println(cfg)
-
 	// инициализируем логгер
-	log, err := logger.New(cfg.LogLevel)
+	zapLog, err := logger.New(cfg.LogLevel)
 	if err != nil {
 		zap.S().Fatalf("init logger error", zap.Error(err))
 	}
 
-	fmt.Println(log)
+	log := zapLog.ZapLogger
 
 	// подключаемся к бд
-	dbConn, err := storage.Connection(cfg.DSN, log.ZapLogger)
+	dbConn, err := storage.Connection(cfg.DSN)
 	if err != nil {
-		log.ZapLogger.Fatal("error connect to db", zap.Error(err))
+		log.Fatal("error connect to db", zap.Error(err))
 	}
 
-	_ = dbConn
-
 	defer dbConn.Close()
+
+	// создание хранилища
+	store := storage.New(dbConn, log)
+
+	// создание сервисного слоя
+	serv := services.New(store, log)
+
+	// инициализация хэндлера
+	handl := handler.New(serv, log)
+
+	// инициализация роутера
+	r := router.New(&handl)
+
+	_ = r
+
+	// настройка и запуск http-сервиса
 
 }
