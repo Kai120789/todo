@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
 
@@ -29,14 +30,31 @@ func Connection(connectionStr string) (*pgxpool.Pool, error) {
 }
 
 // функция добавления доски
-func (d *Storage) SetBoard(board dto.PostBoardDto) error {
-	query := `INSERT INTO boards (id, name, user_id) VALUES ($1, $2, $3)`
-	_, err := d.db.Exec(context.Background(), query, board.ID, board.Name, board.User_id)
+func (d *Storage) SetBoard(board dto.PostBoardDto) (*models.Board, error) {
+	id, err := strconv.ParseUint(board.ID, 10, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	userId, err := strconv.ParseUint(board.UserId, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `INSERT INTO boards (id, name, user_id) VALUES ($1, $2, $3)`
+	_, err = d.db.Exec(context.Background(), query, id, board.Name, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	// заполнение таблицы boards_users для связи многие ко многим
+
+	boardRet, err := d.GetBoard(uint(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return boardRet, nil
 }
 
 // функция получения всех досок
@@ -50,7 +68,7 @@ func (d *Storage) GetAllBoards() ([]models.Board, error) {
 	var boards []models.Board
 	for rows.Next() {
 		var board models.Board
-		err := rows.Scan(&board.ID, &board.Name, &board.User_id, &board.Created_at)
+		err := rows.Scan(&board.ID, &board.Name, &board.UserId, &board.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -62,11 +80,11 @@ func (d *Storage) GetAllBoards() ([]models.Board, error) {
 
 // функция получения доски
 func (d *Storage) GetBoard(id uint) (*models.Board, error) {
-	query := `SELECT * FROM boards WHERE name = $1 ORDER BY created_at`
+	query := `SELECT * FROM boards WHERE id = $1 ORDER BY created_at`
 	row := d.db.QueryRow(context.Background(), query, id)
 
 	var board models.Board
-	err := row.Scan(&board.ID, &board.Name, &board.User_id, &board.Created_at)
+	err := row.Scan(&board.ID, &board.Name, &board.UserId, &board.CreatedAt, &board.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -78,19 +96,29 @@ func (d *Storage) GetBoard(id uint) (*models.Board, error) {
 }
 
 // функция обновления доски
-func (d *Storage) UpdateBoard(board dto.PostBoardDto) error {
-	query := `UPDATE task SET name=$1, user_id=$2 WHERE id=$3`
-	_, err := d.db.Exec(context.Background(), query, board.Name, board.User_id, board.ID)
+func (d *Storage) UpdateBoard(board dto.PostBoardDto) (*models.Board, error) {
+	query := `UPDATE boards SET name=$1, user_id=$2, updated_at=NOW() WHERE id=$3`
+	_, err := d.db.Exec(context.Background(), query, board.Name, board.UserId, board.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	id, err := strconv.ParseUint(board.ID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	boardRet, err := d.GetBoard(uint(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return boardRet, nil
 }
 
 // функция удаления доски
-func (d *Storage) DeleteBoard(id string) error {
-	query := `DELETE FROM board WHERE id=$1`
+func (d *Storage) DeleteBoard(id uint) error {
+	query := `DELETE FROM boards WHERE id=$1`
 	_, err := d.db.Exec(context.Background(), query, id)
 	if err != nil {
 		return err
@@ -100,14 +128,39 @@ func (d *Storage) DeleteBoard(id string) error {
 }
 
 // функция создания задачи
-func (d *Storage) SetTask(task dto.PostTaskDto) error {
-	query := `INSERT INTO tasks (id, title, description, board_id, status_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)`
-	_, err := d.db.Exec(context.Background(), query, task.ID, task.Title, task.Description, task.Board_id, task.Status_id, task.User_id)
+func (d *Storage) SetTask(task dto.PostTaskDto) (*models.Task, error) {
+	id, err := strconv.ParseUint(task.ID, 10, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	userId, err := strconv.ParseUint(task.UserId, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	boardId, err := strconv.ParseUint(task.BoardId, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	statusId, err := strconv.ParseUint(task.StatusId, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `INSERT INTO tasks (id, title, description, board_id, status_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err = d.db.Exec(context.Background(), query, id, task.Title, task.Description, boardId, statusId, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	taskRet, err := d.GetTask(uint(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return taskRet, nil
 }
 
 // функция получения задачи
@@ -116,7 +169,7 @@ func (d *Storage) GetTask(id uint) (*models.Task, error) {
 	row := d.db.QueryRow(context.Background(), query, id)
 
 	var task models.Task
-	err := row.Scan(&task.ID, &task.Title, &task.Description, &task.Board_id, &task.Status_id, &task.User_id, &task.Created_at, &task.Updated_at)
+	err := row.Scan(&task.ID, &task.Title, &task.Description, &task.BoardId, &task.StatusId, &task.UserId, &task.CreatedAt, &task.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -139,7 +192,7 @@ func (d *Storage) GetAllTasks() ([]models.Task, error) {
 	var tasks []models.Task
 	for rows.Next() {
 		var task models.Task
-		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.Board_id, &task.Status_id, &task.User_id, &task.Created_at, &task.Updated_at)
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.BoardId, &task.StatusId, &task.UserId, &task.CreatedAt, &task.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -149,18 +202,28 @@ func (d *Storage) GetAllTasks() ([]models.Task, error) {
 }
 
 // функция обновления задачи
-func (d *Storage) UpdateTask(task dto.PostTaskDto) error {
-	query := `UPDATE task SET title=$1, description=$2, board_id=$3, status_id=$4, user_id=$5 WHERE id=$6`
-	_, err := d.db.Exec(context.Background(), query, task.Title, task.Description, task.Board_id, task.Status_id, task.User_id, task.ID)
+func (d *Storage) UpdateTask(task dto.PostTaskDto) (*models.Task, error) {
+	query := `UPDATE tasks SET title=$1, description=$2, board_id=$3, status_id=$4, user_id=$5, updated_at=NOW() WHERE id=$6`
+	_, err := d.db.Exec(context.Background(), query, task.Title, task.Description, task.BoardId, task.StatusId, task.UserId, task.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	id, err := strconv.ParseUint(task.ID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	taskRet, err := d.GetTask(uint(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return taskRet, nil
 }
 
 // функция удаления задачи
-func (d *Storage) DeleteTask(id string) error {
+func (d *Storage) DeleteTask(id uint) error {
 	query := `DELETE FROM tasks WHERE id=$1`
 	_, err := d.db.Exec(context.Background(), query, id)
 	if err != nil {
@@ -171,9 +234,9 @@ func (d *Storage) DeleteTask(id string) error {
 }
 
 // функция создания статуса
-func (d *Storage) SetStatus() error {
+func (d *Storage) SetStatus(status dto.PostStatusDto) error {
 	query := `INSERT INTO statuses (id, type) VALUES ($1, $2)`
-	_, err := d.db.Exec(context.Background(), query)
+	_, err := d.db.Exec(context.Background(), query, status.ID, status.Type)
 	if err != nil {
 		return err
 	}
@@ -182,7 +245,7 @@ func (d *Storage) SetStatus() error {
 }
 
 // функция удаления статуса
-func (d *Storage) DeleteStatus(id string) error {
+func (d *Storage) DeleteStatus(id uint) error {
 	query := `DELETE FROM statuses WHERE id=$1`
 	_, err := d.db.Exec(context.Background(), query, id)
 	if err != nil {

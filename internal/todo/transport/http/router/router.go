@@ -5,15 +5,10 @@ import (
 	"todo/internal/todo/transport/http/handler"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 func New(todoHandler *handler.TodoHandler) http.Handler {
 	r := chi.NewRouter()
-
-	// Middleware
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
 
 	/*r.Route("/user", func(r chi.Router) {
 		r.Post("/register", todoHandler.RegisterNewUser)
@@ -33,14 +28,16 @@ func New(todoHandler *handler.TodoHandler) http.Handler {
 	// Routes for tasks
 	r.Route("/tasks", func(r chi.Router) {
 		r.Get("/", todoHandler.GetAllTasks)
-		r.Get("/tasks/{id}", todoHandler.GetTask)
-		r.Post("/", todoHandler.GetAllTasks)
-		r.Put("/tasks/{id}", todoHandler.UpdateTask)
-		r.Delete("/tasks/{id}", todoHandler.DeleteTask)
+		r.Get("/{id}", todoHandler.GetTask)
+		r.Post("/", todoHandler.SetTask)
+		r.Put("/{id}", todoHandler.UpdateTask)
+		r.Delete("/{id}", todoHandler.DeleteTask)
 	})
 
-	r.Post("/status", todoHandler.SetStatus)
-	r.Delete("/status", todoHandler.DeleteStatus)
+	r.Route("/status", func(r chi.Router) {
+		r.Post("/", todoHandler.SetStatus)
+		r.Delete("/", todoHandler.DeleteStatus)
+	})
 
 	return r
 }

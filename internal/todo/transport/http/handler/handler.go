@@ -2,12 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +28,7 @@ type TodoHandlerer interface {
 	GetAllTasks() ([]models.Task, error)
 	UpdateTask(body dto.PostTaskDto) error
 	DeleteTask(id string) error
-	SetStatus() error
+	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id string) error
 }
 
@@ -68,9 +69,10 @@ func (h *TodoHandler) GetAllBoards(w http.ResponseWriter, r *http.Request) {
 // Get a specific board
 func (h *TodoHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid ID: %s, error: %v", idStr, err), http.StatusBadRequest)
 		return
 	}
 
@@ -167,6 +169,7 @@ func (h *TodoHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(task)
 }
 
@@ -209,7 +212,7 @@ func (h *TodoHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.SetStatus(); err != nil {
+	if err := h.service.SetStatus(status); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

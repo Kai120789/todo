@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+	"net/http"
 	"todo/internal/todo/config"
 	"todo/internal/todo/services"
 	"todo/internal/todo/storage"
@@ -49,6 +51,19 @@ func StartServer() {
 
 	_ = r
 
-	// настройка и запуск http-сервиса
+	fmt.Println(cfg)
 
+	// настройка и запуск http-сервиса
+	zap.S().Info("starting server", cfg.ServerAddress)
+
+	srv := &http.Server{
+		Addr:    cfg.ServerAddress,
+		Handler: r,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		zap.S().Error("failed to start server")
+	}
+
+	zap.S().Error("server stopped")
 }

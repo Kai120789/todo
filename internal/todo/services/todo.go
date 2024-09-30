@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	"strconv"
+	"todo/internal/todo/api/tg"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
 
@@ -13,18 +15,18 @@ type TodoService struct {
 }
 
 type Storager interface {
-	SetBoard(body dto.PostBoardDto) error
+	SetBoard(body dto.PostBoardDto) (*models.Board, error)
 	GetAllBoards() ([]models.Board, error)
 	GetBoard(id uint) (*models.Board, error)
-	UpdateBoard(body dto.PostBoardDto) error
-	DeleteBoard(id string) error
-	SetTask(body dto.PostTaskDto) error
+	UpdateBoard(body dto.PostBoardDto) (*models.Board, error)
+	DeleteBoard(id uint) error
+	SetTask(body dto.PostTaskDto) (*models.Task, error)
 	GetTask(id uint) (*models.Task, error)
 	GetAllTasks() ([]models.Task, error)
-	UpdateTask(body dto.PostTaskDto) error
-	DeleteTask(id string) error
-	SetStatus() error
-	DeleteStatus(id string) error
+	UpdateTask(body dto.PostTaskDto) (*models.Task, error)
+	DeleteTask(id uint) error
+	SetStatus(body dto.PostStatusDto) error
+	DeleteStatus(id uint) error
 }
 
 func New(stor Storager, logger *zap.Logger) *TodoService {
@@ -38,7 +40,7 @@ func (t *TodoService) SetBoard(body dto.PostBoardDto) error {
 		return fmt.Errorf("board name cannot be empty")
 	}
 
-	err := t.storage.SetBoard(body)
+	_, err := t.storage.SetBoard(body)
 	if err != nil {
 		return err
 	}
@@ -69,7 +71,7 @@ func (t *TodoService) UpdateBoard(body dto.PostBoardDto) error {
 		return fmt.Errorf("board ID is required")
 	}
 
-	err := t.storage.UpdateBoard(body)
+	_, err := t.storage.UpdateBoard(body)
 	if err != nil {
 		return err
 	}
@@ -78,7 +80,16 @@ func (t *TodoService) UpdateBoard(body dto.PostBoardDto) error {
 }
 
 func (t *TodoService) DeleteBoard(id string) error {
-	err := t.storage.DeleteBoard(id)
+	if id == "" {
+		return fmt.Errorf("board ID is required")
+	}
+
+	Uintid, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return err
+	}
+
+	err = t.storage.DeleteBoard(uint(Uintid))
 	if err != nil {
 		return err
 	}
@@ -91,7 +102,12 @@ func (t *TodoService) SetTask(body dto.PostTaskDto) error {
 		return fmt.Errorf("task title cannot be empty")
 	}
 
-	err := t.storage.SetTask(body)
+	task, err := t.storage.SetTask(body)
+	if err != nil {
+		return err
+	}
+
+	err = tg.Create(task)
 	if err != nil {
 		return err
 	}
@@ -122,7 +138,7 @@ func (t *TodoService) UpdateTask(body dto.PostTaskDto) error {
 		return fmt.Errorf("task ID is required")
 	}
 
-	err := t.storage.UpdateTask(body)
+	_, err := t.storage.UpdateTask(body)
 	if err != nil {
 		return err
 	}
@@ -134,7 +150,13 @@ func (t *TodoService) DeleteTask(id string) error {
 	if id == "" {
 		return fmt.Errorf("task ID is required")
 	}
-	err := t.storage.DeleteTask(id)
+
+	Uintid, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return err
+	}
+
+	err = t.storage.DeleteTask(uint(Uintid))
 	if err != nil {
 		return err
 	}
@@ -142,8 +164,8 @@ func (t *TodoService) DeleteTask(id string) error {
 	return nil
 }
 
-func (t *TodoService) SetStatus() error {
-	err := t.storage.SetStatus()
+func (t *TodoService) SetStatus(body dto.PostStatusDto) error {
+	err := t.storage.SetStatus(body)
 	if err != nil {
 		return err
 	}
@@ -155,7 +177,13 @@ func (t *TodoService) DeleteStatus(id string) error {
 	if id == "" {
 		return fmt.Errorf("status ID is required")
 	}
-	err := t.storage.DeleteStatus(id)
+
+	Uintid, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return err
+	}
+
+	err = t.storage.DeleteStatus(uint(Uintid))
 	if err != nil {
 		return err
 	}

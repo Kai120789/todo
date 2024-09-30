@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap/zapcore"
@@ -12,14 +13,14 @@ type Config struct {
 	ServerAddress   string
 	FileStoragePath string
 	DSN             string
-	envSold         string
+	envSalt         string
 	LogLevel        string
 	DbUser          string
 	DbPassword      string
 	DbName          string
+	Timeout         time.Duration
+	IdleTimeout     time.Duration
 }
-
-var AppConfig Config
 
 func GetConfig() (*Config, error) {
 	_ = godotenv.Load()
@@ -44,10 +45,10 @@ func GetConfig() (*Config, error) {
 		flag.StringVar(&cfg.DSN, "d", "", "dsn for database")
 	}
 
-	if envSold := os.Getenv("SOLD"); envSold != "" {
-		cfg.envSold = envSold
+	if envSalt := os.Getenv("SALT"); envSalt != "" {
+		cfg.envSalt = envSalt
 	} else {
-		cfg.envSold = zapcore.ErrorLevel.String()
+		cfg.envSalt = zapcore.ErrorLevel.String()
 	}
 
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
