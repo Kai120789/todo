@@ -20,11 +20,15 @@ type Storager interface {
 	GetBoard(id uint) (*models.Board, error)
 	UpdateBoard(body dto.PostBoardDto) (*models.Board, error)
 	DeleteBoard(id uint) error
+
+	User2Board(body dto.PostUser2BoardDto) error
+
 	SetTask(body dto.PostTaskDto) (*models.Task, error)
 	GetTask(id uint) (*models.Task, error)
 	GetAllTasks() ([]models.Task, error)
 	UpdateTask(body dto.PostTaskDto) (*models.Task, error)
 	DeleteTask(id uint) error
+
 	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id uint) error
 }
@@ -90,6 +94,19 @@ func (t *TodoService) DeleteBoard(id string) error {
 	}
 
 	err = t.storage.DeleteBoard(uint(Uintid))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TodoService) User2Board(body dto.PostUser2BoardDto) error {
+	if body.ID == "" {
+		return fmt.Errorf("board ID is required")
+	}
+
+	err := t.storage.User2Board(body)
 	if err != nil {
 		return err
 	}

@@ -10,11 +10,12 @@ import (
 func New(todoHandler *handler.TodoHandler) http.Handler {
 	r := chi.NewRouter()
 
-	/*r.Route("/user", func(r chi.Router) {
+	r.Route("/user", func(r chi.Router) {
 		r.Post("/register", todoHandler.RegisterNewUser)
 		r.Post("/login", todoHandler.AuthorizateUser)
 		r.Get("/", todoHandler.GetAuthUser)
-	})*/
+		r.Delete("/logout", todoHandler.UserLogout)
+	})
 
 	// Routes for boards
 	r.Route("/boards", func(r chi.Router) {
@@ -23,6 +24,7 @@ func New(todoHandler *handler.TodoHandler) http.Handler {
 		r.Post("/", todoHandler.SetBoard)
 		r.Put("/{id}", todoHandler.UpdateBoard)
 		r.Delete("/{id}", todoHandler.DeleteBoard)
+		r.Post("/{id}", todoHandler.User2Board)
 	})
 
 	// Routes for tasks

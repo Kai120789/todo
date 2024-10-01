@@ -23,13 +23,22 @@ type TodoHandlerer interface {
 	GetBoard(id uint) (*models.Board, error)
 	UpdateBoard(body dto.PostBoardDto) error
 	DeleteBoard(id string) error
+
+	User2Board(body dto.PostUser2BoardDto) error
+
 	SetTask(body dto.PostTaskDto) error
 	GetTask(id uint) (*models.Task, error)
 	GetAllTasks() ([]models.Task, error)
 	UpdateTask(body dto.PostTaskDto) error
 	DeleteTask(id string) error
+
 	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id string) error
+
+	RegisterNewUser(body dto.PostUserDto) (*models.User, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.User, error)
+	GetAuthUser(id uint) (*models.User, error)
+	UserLogout(id uint) error
 }
 
 func New(t TodoHandlerer, logger *zap.Logger) TodoHandler {
@@ -52,6 +61,7 @@ func (h *TodoHandler) SetBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(board)
 }
 
 // Get all boards
@@ -107,6 +117,7 @@ func (h *TodoHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(board)
 }
 
 // Delete a board
@@ -119,6 +130,26 @@ func (h *TodoHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Add user to board
+func (h *TodoHandler) User2Board(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var u2b dto.PostUser2BoardDto
+	if err := json.NewDecoder(r.Body).Decode(&u2b); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+	u2b.BoardId = id
+
+	if err := h.service.User2Board(u2b); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(u2b)
 }
 
 // Create a new task
@@ -135,6 +166,7 @@ func (h *TodoHandler) SetTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(task)
 }
 
 // Get all tasks
@@ -190,6 +222,7 @@ func (h *TodoHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(task)
 }
 
 // Delete a task
@@ -218,6 +251,7 @@ func (h *TodoHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(status)
 }
 
 // DeleteStatus - удаляет существующий статус
@@ -225,6 +259,60 @@ func (h *TodoHandler) DeleteStatus(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.service.DeleteStatus(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *TodoHandler) RegisterNewUser(w http.ResponseWriter, r *http.Request) {
+	var user dto.PostUserDto
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.service.RegisterNewUser(user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
+	var user dto.PostUserDto
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	tokens, err := h.service.AuthorizateUser(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tokens)
+}
+
+func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uint)
+	user, err := h.service.GetAuthUser(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uint)
+	if err := h.service.UserLogout(userID); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
