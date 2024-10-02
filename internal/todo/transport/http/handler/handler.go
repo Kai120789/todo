@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
+	"todo/internal/todo/config"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
 
@@ -73,6 +75,7 @@ func (h *TodoHandler) GetAllBoards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(boards)
 }
 
@@ -97,6 +100,7 @@ func (h *TodoHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(board)
 }
 
@@ -178,6 +182,7 @@ func (h *TodoHandler) GetAllTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(tasks)
 }
 
@@ -292,6 +297,26 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
+	}
+
+	cfg, err := config.GetConfig()
+
+	accessTokenCokie := http.Cookie{
+		Name:     "access_token",
+		Value:    tokens.Access.Value,
+		Path:     "/",
+		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Minute),
+		HttpOnly: true,
+		Secure:   false,
+	}
+
+	refreshTokenCokie := http.Cookie{
+		Name:     "access_token",
+		Value:    tokens.Refresh.Value,
+		Path:     "/",
+		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Minute),
+		HttpOnly: true,
+		Secure:   false,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -10,16 +10,15 @@ import (
 )
 
 type Config struct {
-	ServerAddress   string
-	FileStoragePath string
-	DSN             string
-	envSalt         string
-	LogLevel        string
-	DbUser          string
-	DbPassword      string
-	DbName          string
-	Timeout         time.Duration
-	IdleTimeout     time.Duration
+	ServerAddress        string
+	FileStoragePath      string
+	DBDSN                string
+	envSalt              string
+	LogLevel             string
+	Timeout              time.Duration
+	IdleTimeout          time.Duration
+	AccessTokenTimeLife  time.Duration
+	RefreshTokenTimeLife time.Duration
 }
 
 func GetConfig() (*Config, error) {
@@ -33,16 +32,10 @@ func GetConfig() (*Config, error) {
 		flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "address and port to run server")
 	}
 
-	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
-		cfg.FileStoragePath = envFileStoragePath
+	if envDBConn := os.Getenv("DBDSN"); envDBConn != "" {
+		cfg.DBDSN = envDBConn
 	} else {
-		flag.StringVar(&cfg.FileStoragePath, "f", "", "path to storage file")
-	}
-
-	if envDBConn := os.Getenv("DSN"); envDBConn != "" {
-		cfg.DSN = envDBConn
-	} else {
-		flag.StringVar(&cfg.DSN, "d", "", "dsn for database")
+		flag.StringVar(&cfg.DBDSN, "d", "", "DBDSN for database")
 	}
 
 	if envSalt := os.Getenv("SALT"); envSalt != "" {
@@ -55,24 +48,6 @@ func GetConfig() (*Config, error) {
 		cfg.LogLevel = envLogLevel
 	} else {
 		cfg.LogLevel = zapcore.ErrorLevel.String()
-	}
-
-	if DbUser := os.Getenv("POSTGRES_USER"); DbUser != "" {
-		cfg.DbUser = DbUser
-	} else {
-		flag.StringVar(&cfg.DbUser, "a", "yourdbuser", "user for connect postgres")
-	}
-
-	if DbPassword := os.Getenv("POSTGRES_PASSWORD"); DbPassword != "" {
-		cfg.DbPassword = DbPassword
-	} else {
-		flag.StringVar(&cfg.DbPassword, "a", "yourdbpassword", "password for connect postgres")
-	}
-
-	if DbName := os.Getenv("POSTGRES_DB"); DbName != "" {
-		cfg.DbName = DbName
-	} else {
-		flag.StringVar(&cfg.DbName, "a", "dbname", "postgres dbname")
 	}
 
 	flag.Parse()

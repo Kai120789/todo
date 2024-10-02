@@ -306,11 +306,41 @@ func (d *Storage) DeleteStatus(id uint) error {
 	return nil
 }
 
-// функция для регистрации пользователя
+// register new user
+func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.User, error) {
+	query := `INSERT INTO users (id, username, password_hash) VALUES ($1, $2, $3)`
+	_, err := d.db.Exec(context.Background(), query, body.ID, body.Username, body.PasswordHash)
+	if err != nil {
+		return nil, err
+	}
 
-// проверка, зарегистрирован ли пользователь
+	id, err := strconv.ParseUint(body.ID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
 
-// удаление пользователя
+	userRet, err := d.GetAuthUser(uint(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return userRet, nil
+}
+
+// login user
+func (d *Storage) AuthorizateUser(body dto.GetUserDto) (*models.User, error) {
+
+}
+
+// get auth user
+func (d *Storage) GetAuthUser(id uint) (*models.User, error) {
+
+}
+
+// logout user
+func (d *Storage) UserLogout(id uint) error {
+
+}
 
 func (d *Storage) Close() error {
 	if d.db == nil {

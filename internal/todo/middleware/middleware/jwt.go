@@ -1,4 +1,4 @@
-package jwt
+package middleware
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type Claims struct {
 }
 
 // Middleware для проверки Access токена
-func JwtMiddleware(next http.Handler) http.Handler {
+func JWT(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {

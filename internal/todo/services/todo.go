@@ -31,6 +31,11 @@ type Storager interface {
 
 	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id uint) error
+
+	RegisterNewUser(body dto.PostUserDto) (*models.User, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.User, error)
+	GetAuthUser(id uint) (*models.User, error)
+	UserLogout(id uint) error
 }
 
 func New(stor Storager, logger *zap.Logger) *TodoService {

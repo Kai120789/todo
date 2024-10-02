@@ -1,12 +1,10 @@
 package dto
 
 type GetTaskDto struct {
-	ID    string `json:"id"`
 	Title string `json:"title"`
 }
 
 type PostTaskDto struct {
-	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	BoardId     string `json:"board_id"`
