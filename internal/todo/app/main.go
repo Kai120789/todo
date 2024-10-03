@@ -30,7 +30,7 @@ func StartServer() {
 	log := zapLog.ZapLogger
 
 	// подключаемся к бд
-	dbConn, err := storage.Connection(cfg.DSN)
+	dbConn, err := storage.Connection(cfg.DBDSN)
 	if err != nil {
 		log.Fatal("error connect to db", zap.Error(err))
 	}

@@ -9,6 +9,7 @@ import (
 	"todo/internal/todo/config"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
+	"todo/internal/todo/utils/tokens"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -23,7 +24,7 @@ type TodoHandlerer interface {
 	SetBoard(body dto.PostBoardDto) error
 	GetAllBoards() ([]models.Board, error)
 	GetBoard(id uint) (*models.Board, error)
-	UpdateBoard(body dto.PostBoardDto) error
+	UpdateBoard(body dto.PostBoardDto, id uint) error
 	DeleteBoard(id string) error
 
 	User2Board(body dto.PostUser2BoardDto) error
@@ -31,15 +32,15 @@ type TodoHandlerer interface {
 	SetTask(body dto.PostTaskDto) error
 	GetTask(id uint) (*models.Task, error)
 	GetAllTasks() ([]models.Task, error)
-	UpdateTask(body dto.PostTaskDto) error
+	UpdateTask(body dto.PostTaskDto, id uint) error
 	DeleteTask(id string) error
 
 	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id string) error
 
-	RegisterNewUser(body dto.PostUserDto) (*models.User, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.User, error)
-	GetAuthUser(id uint) (*models.User, error)
+	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error)
+	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
 
@@ -106,16 +107,20 @@ func (h *TodoHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 
 // Update a board
 func (h *TodoHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
 
 	var board dto.PostBoardDto
 	if err := json.NewDecoder(r.Body).Decode(&board); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	board.ID = id
 
-	if err := h.service.UpdateBoard(board); err != nil {
+	if err := h.service.UpdateBoard(board, uint(id)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -212,16 +217,20 @@ func (h *TodoHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 // Update a task
 func (h *TodoHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
 
 	var task dto.PostTaskDto
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	task.ID = id
 
-	if err := h.service.UpdateTask(task); err != nil {
+	if err := h.service.UpdateTask(task, uint(id)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -293,7 +302,7 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := h.service.AuthorizateUser(user)
+	_, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -301,9 +310,12 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 
 	cfg, err := config.GetConfig()
 
+	accessTokenValue, err := tokens.GenerateJWT(user.ID, time.Now().Add(cfg.AccessTokenTimeLife*time.Minute))
+	refreshTokenValue, err := tokens.GenerateJWT(user.ID, time.Now().Add(cfg.RefreshTokenTimeLife*time.Hour*24*30))
+
 	accessTokenCokie := http.Cookie{
 		Name:     "access_token",
-		Value:    tokens.Access.Value,
+		Value:    accessTokenValue,
 		Path:     "/",
 		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Minute),
 		HttpOnly: true,
@@ -312,15 +324,18 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 
 	refreshTokenCokie := http.Cookie{
 		Name:     "access_token",
-		Value:    tokens.Refresh.Value,
+		Value:    refreshTokenValue,
 		Path:     "/",
-		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Minute),
+		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Hour * 24 * 30),
 		HttpOnly: true,
 		Secure:   false,
 	}
 
+	http.SetCookie(w, &accessTokenCokie)
+	http.SetCookie(w, &refreshTokenCokie)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokens)
+	json.NewEncoder(w).Encode(accessTokenValue)
 }
 
 func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {

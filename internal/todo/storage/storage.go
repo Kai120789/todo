@@ -33,6 +33,11 @@ type Storager interface {
 
 	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id uint) error
+
+	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error)
+	GetAuthUser(id uint) (*models.UserToken, error)
+	UserLogout(id uint) error
 }
 
 func New(Conn *pgxpool.Pool, log *zap.Logger) *Storage {
@@ -50,25 +55,16 @@ func Connection(connectionStr string) (*pgxpool.Pool, error) {
 
 // add board
 func (d *Storage) SetBoard(body dto.PostBoardDto) (*models.Board, error) {
-	id, err := strconv.ParseUint(body.ID, 10, 32)
+	query := `INSERT INTO boards (name, user_id) VALUES ($1, $2)`
+
+	var id uint
+	err := d.db.QueryRow(context.Background(), query, body.Name, body.UserId).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
 
-	var maxID int
-	err = d.db.QueryRow(context.Background(), "SELECT COALESCE(MAX(id), 0) FROM boards_users").Scan(&maxID)
-	if err != nil {
-		return nil, err
-	}
-
-	query := `INSERT INTO boards_users (id, user_id, board_id) VALUES ($1, $2, $3)`
-	_, err = d.db.Exec(context.Background(), query, maxID+1, body.UserId, id)
-	if err != nil {
-		return nil, err
-	}
-
-	query = `INSERT INTO boards (id, name) VALUES ($1, $2)`
-	_, err = d.db.Exec(context.Background(), query, id, body.Name)
+	query = `INSERT INTO boards_users (user_id, board_id) VALUES ($1, $2)`
+	_, err = d.db.Exec(context.Background(), query, body.UserId, id)
 	if err != nil {
 		return nil, err
 	}
@@ -120,19 +116,14 @@ func (d *Storage) GetBoard(id uint) (*models.Board, error) {
 }
 
 // update board
-func (d *Storage) UpdateBoard(body dto.PostBoardDto) (*models.Board, error) {
+func (d *Storage) UpdateBoard(body dto.PostBoardDto, id uint) (*models.Board, error) {
 	query := `UPDATE boards SET name=$1, updated_at=NOW() WHERE id=$2`
-	_, err := d.db.Exec(context.Background(), query, body.Name, body.ID)
+	_, err := d.db.Exec(context.Background(), query, body.Name, id)
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := strconv.ParseUint(body.ID, 10, 32)
-	if err != nil {
-		return nil, err
-	}
-
-	boardRet, err := d.GetBoard(uint(id))
+	boardRet, err := d.GetBoard(id)
 	if err != nil {
 		return nil, err
 	}
@@ -153,8 +144,8 @@ func (d *Storage) DeleteBoard(id uint) error {
 
 // add user to board
 func (d *Storage) User2Board(body dto.PostUser2BoardDto) error {
-	query := `INSERT INTO boards_users (id, user_id, board_id) VALUES ($1, $2, $3)`
-	_, err := d.db.Exec(context.Background(), query, body.ID, body.UserId, body.BoardId)
+	query := `INSERT INTO boards_users (user_id, board_id) VALUES ($1, $2)`
+	_, err := d.db.Exec(context.Background(), query, body.UserId, body.BoardId)
 	if err != nil {
 		return err
 	}
@@ -165,11 +156,6 @@ func (d *Storage) User2Board(body dto.PostUser2BoardDto) error {
 
 // set task
 func (d *Storage) SetTask(body dto.PostTaskDto) (*models.Task, error) {
-	id, err := strconv.ParseUint(body.ID, 10, 32)
-	if err != nil {
-		return nil, err
-	}
-
 	userId, err := strconv.ParseUint(body.UserId, 10, 32)
 	if err != nil {
 		return nil, err
@@ -185,8 +171,9 @@ func (d *Storage) SetTask(body dto.PostTaskDto) (*models.Task, error) {
 		return nil, err
 	}
 
-	query := `INSERT INTO tasks (id, title, description, board_id, status_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)`
-	_, err = d.db.Exec(context.Background(), query, id, body.Title, body.Description, boardId, statusId, userId)
+	var id uint
+	query := `INSERT INTO tasks (title, description, board_id, status_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err = d.db.QueryRow(context.Background(), query, body.Title, body.Description, boardId, statusId, userId).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +188,7 @@ func (d *Storage) SetTask(body dto.PostTaskDto) (*models.Task, error) {
 
 // get task
 func (d *Storage) GetTask(id uint) (*models.Task, error) {
-	query := `SELECT * FROM tasks WHERE id = $1 ORDER BY updated_at`
+	query := `SELECT * FROM tasks WHERE id = $1`
 	row := d.db.QueryRow(context.Background(), query, id)
 
 	var task models.Task
@@ -238,12 +225,7 @@ func (d *Storage) GetAllTasks() ([]models.Task, error) {
 }
 
 // update task
-func (d *Storage) UpdateTask(body dto.PostTaskDto) (*models.Task, error) {
-	id, err := strconv.ParseUint(body.ID, 10, 32)
-	if err != nil {
-		return nil, err
-	}
-
+func (d *Storage) UpdateTask(body dto.PostTaskDto, id uint) (*models.Task, error) {
 	userId, err := strconv.ParseUint(body.UserId, 10, 32)
 	if err != nil {
 		return nil, err
@@ -286,8 +268,8 @@ func (d *Storage) DeleteTask(id uint) error {
 
 // create status
 func (d *Storage) SetStatus(body dto.PostStatusDto) error {
-	query := `INSERT INTO statuses (id, type) VALUES ($1, $2)`
-	_, err := d.db.Exec(context.Background(), query, body.ID, body.Type)
+	query := `INSERT INTO statuses type VALUES $1`
+	_, err := d.db.Exec(context.Background(), query, body.Type)
 	if err != nil {
 		return err
 	}
@@ -307,14 +289,10 @@ func (d *Storage) DeleteStatus(id uint) error {
 }
 
 // register new user
-func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.User, error) {
-	query := `INSERT INTO users (id, username, password_hash) VALUES ($1, $2, $3)`
-	_, err := d.db.Exec(context.Background(), query, body.ID, body.Username, body.PasswordHash)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := strconv.ParseUint(body.ID, 10, 32)
+func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error) {
+	var id uint
+	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id`
+	err := d.db.QueryRow(context.Background(), query, body.Username, body.PasswordHash).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -328,18 +306,55 @@ func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.User, error) {
 }
 
 // login user
-func (d *Storage) AuthorizateUser(body dto.GetUserDto) (*models.User, error) {
+func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error) {
+	var id uint
 
+	// Запрос на проверку существования пользователя с указанными логином и паролем
+	query := `SELECT id FROM users WHERE username=$1 AND password_hash=$2`
+	err := d.db.QueryRow(context.Background(), query, body.Username, body.PasswordHash).Scan(&id)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found") // Пользователь не найден
+		}
+		return nil, err // Другие возможные ошибки
+	}
+
+	// Если пользователь найден, возвращаем его данные
+	userRet, err := d.GetAuthUser(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return userRet, nil
 }
 
 // get auth user
-func (d *Storage) GetAuthUser(id uint) (*models.User, error) {
+func (d *Storage) GetAuthUser(id uint) (*models.UserToken, error) {
+	query := `SELECT refresh_token FROM user_token WHERE id=$1`
+	row := d.db.QueryRow(context.Background(), query, id)
 
+	var token models.UserToken
+	err := row.Scan(&token.ID, &token.UserID, &token.RefreshToken)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &token, nil
 }
 
 // logout user
 func (d *Storage) UserLogout(id uint) error {
+	query := `DELETE FROM user_token WHERE id=$1`
+	_, err := d.db.Exec(context.Background(), query, id)
+	if err != nil {
+		return err
+	}
 
+	return nil
 }
 
 func (d *Storage) Close() error {

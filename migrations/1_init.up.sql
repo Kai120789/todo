@@ -41,5 +41,5 @@ CREATE TABLE IF NOT EXISTS boards_users (
 CREATE TABLE IF NOT EXISTS user_token (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    access_token VARCHAR(200) NOT NULL
+    refresh_token VARCHAR(200) NOT NULL
 )

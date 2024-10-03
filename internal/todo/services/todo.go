@@ -18,7 +18,7 @@ type Storager interface {
 	SetBoard(body dto.PostBoardDto) (*models.Board, error)
 	GetAllBoards() ([]models.Board, error)
 	GetBoard(id uint) (*models.Board, error)
-	UpdateBoard(body dto.PostBoardDto) (*models.Board, error)
+	UpdateBoard(body dto.PostBoardDto, id uint) (*models.Board, error)
 	DeleteBoard(id uint) error
 
 	User2Board(body dto.PostUser2BoardDto) error
@@ -26,15 +26,15 @@ type Storager interface {
 	SetTask(body dto.PostTaskDto) (*models.Task, error)
 	GetTask(id uint) (*models.Task, error)
 	GetAllTasks() ([]models.Task, error)
-	UpdateTask(body dto.PostTaskDto) (*models.Task, error)
+	UpdateTask(body dto.PostTaskDto, id uint) (*models.Task, error)
 	DeleteTask(id uint) error
 
 	SetStatus(body dto.PostStatusDto) error
 	DeleteStatus(id uint) error
 
-	RegisterNewUser(body dto.PostUserDto) (*models.User, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.User, error)
-	GetAuthUser(id uint) (*models.User, error)
+	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error)
+	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
 
@@ -75,12 +75,12 @@ func (t *TodoService) GetBoard(id uint) (*models.Board, error) {
 	return board, nil
 }
 
-func (t *TodoService) UpdateBoard(body dto.PostBoardDto) error {
-	if body.ID == "" {
-		return fmt.Errorf("board ID is required")
+func (t *TodoService) UpdateBoard(body dto.PostBoardDto, id uint) error {
+	if body.Name == "" {
+		return fmt.Errorf("board Name is required")
 	}
 
-	_, err := t.storage.UpdateBoard(body)
+	_, err := t.storage.UpdateBoard(body, id)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,11 @@ func (t *TodoService) DeleteBoard(id string) error {
 }
 
 func (t *TodoService) User2Board(body dto.PostUser2BoardDto) error {
-	if body.ID == "" {
+	if body.UserId == "" {
+		return fmt.Errorf("user ID is required")
+	}
+
+	if body.BoardId == "" {
 		return fmt.Errorf("board ID is required")
 	}
 
@@ -155,12 +159,12 @@ func (t *TodoService) GetAllTasks() ([]models.Task, error) {
 	return tasks, err
 }
 
-func (t *TodoService) UpdateTask(body dto.PostTaskDto) error {
-	if body.ID == "" {
-		return fmt.Errorf("task ID is required")
+func (t *TodoService) UpdateTask(body dto.PostTaskDto, id uint) error {
+	if body.Title == "" {
+		return fmt.Errorf("task Title is required")
 	}
 
-	_, err := t.storage.UpdateTask(body)
+	_, err := t.storage.UpdateTask(body, id)
 	if err != nil {
 		return err
 	}
@@ -206,6 +210,50 @@ func (t *TodoService) DeleteStatus(id string) error {
 	}
 
 	err = t.storage.DeleteStatus(uint(Uintid))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TodoService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error) {
+	if body.Username == "" {
+		return nil, fmt.Errorf("task title cannot be empty")
+	}
+
+	token, err := t.storage.RegisterNewUser(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (t *TodoService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error) {
+	if body.Username == "" {
+		return nil, fmt.Errorf("task title cannot be empty")
+	}
+
+	token, err := t.storage.AuthorizateUser(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (t *TodoService) GetAuthUser(id uint) (*models.UserToken, error) {
+	token, err := t.storage.GetAuthUser(uint(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (t *TodoService) UserLogout(id uint) error {
+	err := t.storage.UserLogout(uint(id))
 	if err != nil {
 		return err
 	}

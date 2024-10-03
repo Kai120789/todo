@@ -3,12 +3,11 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"todo/internal/todo/config"
 
 	"github.com/golang-jwt/jwt"
+	"go.uber.org/zap"
 )
-
-// JWT секрет для подписи токенов
-var jwtSecret = []byte("your_secret_key")
 
 // Claims для JWT
 type Claims struct {
@@ -19,6 +18,10 @@ type Claims struct {
 // Middleware для проверки Access токена
 func JWT(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cfg, err := config.GetConfig()
+		if err != nil {
+			zap.S().Fatalf("get config error", zap.Error(err))
+		}
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {
 			http.Error(w, "Missing token", http.StatusUnauthorized)
@@ -27,7 +30,7 @@ func JWT(next http.Handler) http.Handler {
 
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return cfg.SecretKey, nil
 		})
 
 		if err != nil || !token.Valid {

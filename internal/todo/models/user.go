@@ -5,6 +5,6 @@ import "time"
 type User struct {
 	ID           uint
 	Username     string
-	PasswordHash string
+	PasswordHash []byte
 	CreatedAt    time.Time
 }

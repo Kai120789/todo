@@ -15,8 +15,7 @@ type Config struct {
 	DBDSN                string
 	envSalt              string
 	LogLevel             string
-	Timeout              time.Duration
-	IdleTimeout          time.Duration
+	SecretKey            string
 	AccessTokenTimeLife  time.Duration
 	RefreshTokenTimeLife time.Duration
 }
@@ -48,6 +47,12 @@ func GetConfig() (*Config, error) {
 		cfg.LogLevel = envLogLevel
 	} else {
 		cfg.LogLevel = zapcore.ErrorLevel.String()
+	}
+
+	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
+		cfg.SecretKey = secretKey
+	} else {
+		cfg.SecretKey = zapcore.ErrorLevel.String()
 	}
 
 	flag.Parse()
