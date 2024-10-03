@@ -18,6 +18,6 @@ INSERT INTO boards_users (id, user_id, board_id)
 VALUES (1, 1, 1)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_token (id, user_id, access_token)
+INSERT INTO user_token (id, user_id, refresh_token)
 VALUES (1, 1, 'TESTTOKEN')
 ON CONFLICT DO NOTHING;

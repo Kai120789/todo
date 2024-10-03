@@ -306,7 +306,7 @@ func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, erro
 }
 
 // login user
-func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error) {
+func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
 	var id uint
 
 	// Запрос на проверку существования пользователя с указанными логином и паролем
@@ -315,18 +315,18 @@ func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, erro
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("user not found") // Пользователь не найден
+			return nil, nil, fmt.Errorf("user not found") // Пользователь не найден
 		}
-		return nil, err // Другие возможные ошибки
+		return nil, nil, err // Другие возможные ошибки
 	}
 
 	// Если пользователь найден, возвращаем его данные
 	userRet, err := d.GetAuthUser(id)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return userRet, nil
+	return userRet, &id, nil
 }
 
 // get auth user

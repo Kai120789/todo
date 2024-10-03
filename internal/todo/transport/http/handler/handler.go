@@ -39,7 +39,7 @@ type TodoHandlerer interface {
 	DeleteStatus(id string) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -302,16 +302,29 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.service.AuthorizateUser(user)
+	_, userID, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	cfg, err := config.GetConfig()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
 
-	accessTokenValue, err := tokens.GenerateJWT(user.ID, time.Now().Add(cfg.AccessTokenTimeLife*time.Minute))
-	refreshTokenValue, err := tokens.GenerateJWT(user.ID, time.Now().Add(cfg.RefreshTokenTimeLife*time.Hour*24*30))
+	accessTokenValue, err := tokens.GenerateJWT(*userID, time.Now().Add(cfg.AccessTokenTimeLife*time.Minute))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	refreshTokenValue, err := tokens.GenerateJWT(*userID, time.Now().Add(cfg.RefreshTokenTimeLife*time.Hour*24*30))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
 
 	accessTokenCokie := http.Cookie{
 		Name:     "access_token",
