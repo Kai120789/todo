@@ -232,7 +232,7 @@ func (t *TodoService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, 
 
 func (t *TodoService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
 	if body.Username == "" {
-		return nil, nil, fmt.Errorf("task title cannot be empty")
+		return nil, nil, fmt.Errorf("username cannot be empty")
 	}
 
 	token, id, err := t.storage.AuthorizateUser(body)
