@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"todo/internal/todo/config"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
 	"todo/internal/todo/utils/tokens"
@@ -39,7 +38,7 @@ type TodoHandlerer interface {
 	DeleteStatus(id string) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -308,19 +307,13 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cfg, err := config.GetConfig()
+	accessTokenValue, err := tokens.GenerateJWT(userID, time.Now().Add(15*time.Minute))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	accessTokenValue, err := tokens.GenerateJWT(*userID, time.Now().Add(cfg.AccessTokenTimeLife*time.Minute))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	refreshTokenValue, err := tokens.GenerateJWT(*userID, time.Now().Add(cfg.RefreshTokenTimeLife*time.Hour*24*30))
+	refreshTokenValue, err := tokens.GenerateJWT(userID, time.Now().Add(2*time.Hour*24*30))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -330,16 +323,16 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 		Name:     "access_token",
 		Value:    accessTokenValue,
 		Path:     "/",
-		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Minute),
+		Expires:  time.Now().Add(15 * time.Minute),
 		HttpOnly: true,
 		Secure:   false,
 	}
 
 	refreshTokenCokie := http.Cookie{
-		Name:     "access_token",
+		Name:     "refresh_token",
 		Value:    refreshTokenValue,
 		Path:     "/",
-		Expires:  time.Now().Add(cfg.AccessTokenTimeLife * time.Hour * 24 * 30),
+		Expires:  time.Now().Add(2 * time.Hour * 24 * 30),
 		HttpOnly: true,
 		Secure:   false,
 	}
@@ -352,23 +345,68 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(uint)
-	user, err := h.service.GetAuthUser(userID)
+	var user dto.PostUserDto
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+	_, userID, err := h.service.AuthorizateUser(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	user2, err := h.service.GetAuthUser(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(user2)
 }
 
 func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(uint)
-	if err := h.service.UserLogout(userID); err != nil {
+	var user dto.PostUserDto
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	_, userID, err := h.service.AuthorizateUser(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	err = h.service.UserLogout(userID)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	expiredCookie := time.Now().Add(-1 * time.Hour)
+
+	accessTokenCokie := http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  expiredCookie,
+		HttpOnly: true,
+		Secure:   false, // Используйте true, если у вас HTTPS
+	}
+
+	refreshTokenCokie := http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  expiredCookie,
+		HttpOnly: true,
+		Secure:   false, // Используйте true, если у вас HTTPS
+	}
+
+	http.SetCookie(w, &accessTokenCokie)
+	http.SetCookie(w, &refreshTokenCokie)
 
 	w.WriteHeader(http.StatusNoContent)
 }

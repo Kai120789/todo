@@ -35,7 +35,7 @@ type Storager interface {
 	DeleteStatus(id uint) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -279,7 +279,7 @@ func (d *Storage) SetStatus(body dto.PostStatusDto) error {
 
 // delete status
 func (d *Storage) DeleteStatus(id uint) error {
-	query := `DELETE FROM statuses WHERE id=$1`
+	query := `DELETE FROM statuses WHERE id = $1`
 	_, err := d.db.Exec(context.Background(), query, id)
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, erro
 }
 
 // login user
-func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
+func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error) {
 	var id uint
 
 	// Запрос на проверку существования пользователя с указанными логином и паролем
@@ -315,23 +315,23 @@ func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uin
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, nil, fmt.Errorf("user not found") // Пользователь не найден
+			return nil, id, fmt.Errorf("user not found") // Пользователь не найден
 		}
-		return nil, nil, err // Другие возможные ошибки
+		return nil, id, err // Другие возможные ошибки
 	}
 
 	// Если пользователь найден, возвращаем его данные
 	userRet, err := d.GetAuthUser(id)
 	if err != nil {
-		return nil, nil, err
+		return nil, id, err
 	}
 
-	return userRet, &id, nil
+	return userRet, id, nil
 }
 
 // get auth user
 func (d *Storage) GetAuthUser(id uint) (*models.UserToken, error) {
-	query := `SELECT refresh_token FROM user_token WHERE id=$1`
+	query := `SELECT * FROM user_token WHERE id=$1`
 	row := d.db.QueryRow(context.Background(), query, id)
 
 	var token models.UserToken

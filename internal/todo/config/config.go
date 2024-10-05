@@ -3,21 +3,18 @@ package config
 import (
 	"flag"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
-	ServerAddress        string
-	FileStoragePath      string
-	DBDSN                string
-	envSalt              string
-	LogLevel             string
-	SecretKey            string
-	AccessTokenTimeLife  time.Duration
-	RefreshTokenTimeLife time.Duration
+	ServerAddress   string
+	FileStoragePath string
+	DBDSN           string
+	envSalt         string
+	LogLevel        string
+	SecretKey       string
 }
 
 func GetConfig() (*Config, error) {

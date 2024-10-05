@@ -1,6 +1,7 @@
 package tokens
 
 import (
+	"errors"
 	"time"
 	"todo/internal/todo/config"
 
@@ -13,19 +14,32 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func GenerateJWT(userID uint, time time.Time) (string, error) {
+func GenerateJWT(userID uint, expiresAt time.Time) (string, error) {
 	cfg, err := config.GetConfig()
 	if err != nil {
-		zap.S().Fatalf("get config error", zap.Error(err))
+		zap.S().Fatalf("Error fetching config", zap.Error(err))
+		return "", err
+	}
+
+	// Проверьте, что SecretKey — это строка
+	if cfg.SecretKey == "" {
+		zap.S().Error("Secret key is empty")
+		return "", errors.New("secret key is empty")
 	}
 
 	claims := &Claims{
 		UserID: userID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Unix(),
+			ExpiresAt: expiresAt.Unix(), // Здесь устанавливается время истечения
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(cfg.SecretKey)
+	signedToken, err := token.SignedString([]byte(cfg.SecretKey)) // Приведение ключа к []byte
+	if err != nil {
+		zap.S().Errorf("Error signing token: %v", err)
+		return "", err
+	}
+
+	return signedToken, nil
 }

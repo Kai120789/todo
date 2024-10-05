@@ -33,7 +33,7 @@ type Storager interface {
 	DeleteStatus(id uint) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -230,14 +230,14 @@ func (t *TodoService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, 
 	return token, nil
 }
 
-func (t *TodoService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
+func (t *TodoService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error) {
 	if body.Username == "" {
-		return nil, nil, fmt.Errorf("username cannot be empty")
+		return nil, 0, fmt.Errorf("username cannot be empty")
 	}
 
 	token, id, err := t.storage.AuthorizateUser(body)
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	return token, id, nil

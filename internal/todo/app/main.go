@@ -53,8 +53,10 @@ func StartServer() {
 
 	fmt.Println(cfg)
 
+	fmt.Println(cfg.SecretKey) // должно вывести string
+
 	// настройка и запуск http-сервиса
-	zap.S().Info("starting server", cfg.ServerAddress)
+	log.Info("starting server", zap.String("address", cfg.ServerAddress)) // Используйте log вместо zap.S()
 
 	srv := &http.Server{
 		Addr:    cfg.ServerAddress,
@@ -62,8 +64,8 @@ func StartServer() {
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
-		zap.S().Error("failed to start server")
+		log.Error("failed to start server", zap.Error(err)) // Используйте log вместо zap.S()
 	}
 
-	zap.S().Error("server stopped")
+	log.Error("server stopped")
 }
