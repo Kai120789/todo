@@ -5,6 +5,5 @@ type GetBoardDto struct {
 }
 
 type PostBoardDto struct {
-	Name   string `json:"name"`
-	UserId string `json:"user_id"`
+	Name string `json:"name"`
 }

@@ -20,7 +20,7 @@ type TodoHandler struct {
 }
 
 type TodoHandlerer interface {
-	SetBoard(body dto.PostBoardDto) error
+	SetBoard(body dto.PostBoardDto) (*models.Board, error)
 	GetAllBoards() ([]models.Board, error)
 	GetBoard(id uint) (*models.Board, error)
 	UpdateBoard(body dto.PostBoardDto, id uint) error
@@ -39,6 +39,7 @@ type TodoHandlerer interface {
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
 	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
+	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -57,13 +58,15 @@ func (h *TodoHandler) SetBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.SetBoard(board); err != nil {
+	boardRet, err := h.service.SetBoard(board)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(board)
+	json.NewEncoder(w).Encode(boardRet)
 }
 
 // Get all boards
@@ -340,6 +343,12 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &accessTokenCokie)
 	http.SetCookie(w, &refreshTokenCokie)
 
+	err = h.service.WriteRefreshToken(userID, refreshTokenValue)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(accessTokenValue)
 }
@@ -362,8 +371,13 @@ func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user2 == nil {
+		http.Error(w, "No active user", http.StatusUnauthorized)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user2)
+	json.NewEncoder(w).Encode(userID)
 }
 
 func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {

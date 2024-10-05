@@ -34,6 +34,7 @@ type Storager interface {
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
 	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
+	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -44,17 +45,17 @@ func New(stor Storager, logger *zap.Logger) *TodoService {
 	}
 }
 
-func (t *TodoService) SetBoard(body dto.PostBoardDto) error {
+func (t *TodoService) SetBoard(body dto.PostBoardDto) (*models.Board, error) {
 	if body.Name == "" {
-		return fmt.Errorf("board name cannot be empty")
+		return nil, fmt.Errorf("board name cannot be empty")
 	}
 
-	_, err := t.storage.SetBoard(body)
+	boardRet, err := t.storage.SetBoard(body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return boardRet, nil
 }
 
 func (t *TodoService) GetAllBoards() ([]models.Board, error) {
@@ -254,6 +255,15 @@ func (t *TodoService) GetAuthUser(id uint) (*models.UserToken, error) {
 
 func (t *TodoService) UserLogout(id uint) error {
 	err := t.storage.UserLogout(uint(id))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TodoService) WriteRefreshToken(userId uint, refreshTokenValue string) error {
+	err := t.storage.WriteRefreshToken(userId, refreshTokenValue)
 	if err != nil {
 		return err
 	}

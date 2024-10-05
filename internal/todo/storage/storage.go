@@ -36,6 +36,7 @@ type Storager interface {
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
 	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
+	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 }
@@ -55,16 +56,10 @@ func Connection(connectionStr string) (*pgxpool.Pool, error) {
 
 // add board
 func (d *Storage) SetBoard(body dto.PostBoardDto) (*models.Board, error) {
-	query := `INSERT INTO boards (name, user_id) VALUES ($1, $2)`
+	query := `INSERT INTO boards (name) VALUES ($1) RETURNING id`
 
 	var id uint
-	err := d.db.QueryRow(context.Background(), query, body.Name, body.UserId).Scan(&id)
-	if err != nil {
-		return nil, err
-	}
-
-	query = `INSERT INTO boards_users (user_id, board_id) VALUES ($1, $2)`
-	_, err = d.db.Exec(context.Background(), query, body.UserId, id)
+	err := d.db.QueryRow(context.Background(), query, body.Name).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +95,7 @@ func (d *Storage) GetAllBoards() ([]models.Board, error) {
 
 // get board
 func (d *Storage) GetBoard(id uint) (*models.Board, error) {
-	query := `SELECT * FROM boards WHERE id = $1 ORDER BY created_at`
+	query := `SELECT * FROM boards WHERE id = $1`
 	row := d.db.QueryRow(context.Background(), query, id)
 
 	var board models.Board
@@ -312,18 +307,17 @@ func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint
 	// Запрос на проверку существования пользователя с указанными логином и паролем
 	query := `SELECT id FROM users WHERE username=$1 AND password_hash=$2`
 	err := d.db.QueryRow(context.Background(), query, body.Username, body.PasswordHash).Scan(&id)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, id, fmt.Errorf("user not found") // Пользователь не найден
+			return nil, 0, fmt.Errorf("user not found") // Пользователь не найден
 		}
-		return nil, id, err // Другие возможные ошибки
+		return nil, 0, err // Другие возможные ошибки
 	}
 
 	// Если пользователь найден, возвращаем его данные
 	userRet, err := d.GetAuthUser(id)
 	if err != nil {
-		return nil, id, err
+		return nil, 0, err
 	}
 
 	return userRet, id, nil
@@ -331,7 +325,7 @@ func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint
 
 // get auth user
 func (d *Storage) GetAuthUser(id uint) (*models.UserToken, error) {
-	query := `SELECT * FROM user_token WHERE id=$1`
+	query := `SELECT * FROM user_token WHERE user_id=$1`
 	row := d.db.QueryRow(context.Background(), query, id)
 
 	var token models.UserToken
@@ -348,8 +342,18 @@ func (d *Storage) GetAuthUser(id uint) (*models.UserToken, error) {
 
 // logout user
 func (d *Storage) UserLogout(id uint) error {
-	query := `DELETE FROM user_token WHERE id=$1`
+	query := `DELETE FROM user_token WHERE user_id=$1`
 	_, err := d.db.Exec(context.Background(), query, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Storage) WriteRefreshToken(userId uint, refreshTokenValue string) error {
+	query := `INSERT INTO user_token (user_id, refresh_token) VALUES ($1, $2)`
+	_, err := d.db.Exec(context.Background(), query, userId, refreshTokenValue)
 	if err != nil {
 		return err
 	}
