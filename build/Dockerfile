@@ -1,11 +1,11 @@
 # Указываем базовый образ
-FROM golang:1.21.3-alpine
+FROM golang:1.23.1-alpine
 
 # Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
 
 # Копируем go.mod и go.sum файлы
-COPY go.mod go.sum ./
+COPY ../go.mod ../go.sum ./
 
 # Загружаем зависимости
 RUN go mod download

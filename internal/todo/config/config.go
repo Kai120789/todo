@@ -9,12 +9,10 @@ import (
 )
 
 type Config struct {
-	ServerAddress   string
-	FileStoragePath string
-	DBDSN           string
-	envSalt         string
-	LogLevel        string
-	SecretKey       string
+	ServerAddress string
+	DBDSN         string
+	LogLevel      string
+	SecretKey     string
 }
 
 func GetConfig() (*Config, error) {
@@ -32,12 +30,6 @@ func GetConfig() (*Config, error) {
 		cfg.DBDSN = envDBConn
 	} else {
 		flag.StringVar(&cfg.DBDSN, "d", "", "DBDSN for database")
-	}
-
-	if envSalt := os.Getenv("SALT"); envSalt != "" {
-		cfg.envSalt = envSalt
-	} else {
-		cfg.envSalt = zapcore.ErrorLevel.String()
 	}
 
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
 	"todo/internal/todo/config"
 	"todo/internal/todo/services"
@@ -48,12 +47,6 @@ func StartServer() {
 
 	// инициализация роутера
 	r := router.New(&handl)
-
-	_ = r
-
-	fmt.Println(cfg)
-
-	fmt.Println(cfg.SecretKey) // должно вывести string
 
 	// настройка и запуск http-сервиса
 	log.Info("starting server", zap.String("address", cfg.ServerAddress)) // Используйте log вместо zap.S()
