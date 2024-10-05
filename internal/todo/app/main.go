@@ -14,13 +14,13 @@ import (
 
 func StartServer() {
 
-	// Получаем конфиг
+	// get config
 	cfg, err := config.GetConfig()
 	if err != nil {
 		zap.S().Fatalf("get config error", zap.Error(err))
 	}
 
-	// инициализируем логгер
+	// init logger
 	zapLog, err := logger.New(cfg.LogLevel)
 	if err != nil {
 		zap.S().Fatalf("init logger error", zap.Error(err))
@@ -28,7 +28,7 @@ func StartServer() {
 
 	log := zapLog.ZapLogger
 
-	// подключаемся к бд
+	// connect to postgres db
 	dbConn, err := storage.Connection(cfg.DBDSN)
 	if err != nil {
 		log.Fatal("error connect to db", zap.Error(err))
@@ -36,20 +36,20 @@ func StartServer() {
 
 	defer dbConn.Close()
 
-	// создание хранилища
+	// create storage
 	store := storage.New(dbConn, log)
 
-	// создание сервисного слоя
+	// create service
 	serv := services.New(store, log)
 
-	// инициализация хэндлера
+	// init handler
 	handl := handler.New(serv, log)
 
-	// инициализация роутера
+	// init router
 	r := router.New(&handl)
 
-	// настройка и запуск http-сервиса
-	log.Info("starting server", zap.String("address", cfg.ServerAddress)) // Используйте log вместо zap.S()
+	// start http-server
+	log.Info("starting server", zap.String("address", cfg.ServerAddress))
 
 	srv := &http.Server{
 		Addr:    cfg.ServerAddress,
@@ -57,7 +57,7 @@ func StartServer() {
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server", zap.Error(err)) // Используйте log вместо zap.S()
+		log.Error("failed to start server", zap.Error(err))
 	}
 
 	log.Error("server stopped")

@@ -30,12 +30,12 @@ func GenerateJWT(userID uint, expiresAt time.Time) (string, error) {
 	claims := &Claims{
 		UserID: userID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expiresAt.Unix(), // Здесь устанавливается время истечения
+			ExpiresAt: expiresAt.Unix(), // token expire time
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(cfg.SecretKey)) // Приведение ключа к []byte
+	signedToken, err := token.SignedString([]byte(cfg.SecretKey)) // key to type []byte
 	if err != nil {
 		zap.S().Errorf("Error signing token: %v", err)
 		return "", err

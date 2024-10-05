@@ -351,6 +351,7 @@ func (d *Storage) UserLogout(id uint) error {
 	return nil
 }
 
+// add refresh token to db
 func (d *Storage) WriteRefreshToken(userId uint, refreshTokenValue string) error {
 	query := `INSERT INTO user_token (user_id, refresh_token) VALUES ($1, $2)`
 	_, err := d.db.Exec(context.Background(), query, userId, refreshTokenValue)

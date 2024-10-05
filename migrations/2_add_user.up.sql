@@ -1,3 +1,5 @@
+-- test inserts in all tables
+
 INSERT INTO users (id, username, password_hash)
 VALUES (1, 'testUser', 'QWERTYU')
 ON CONFLICT DO NOTHING;

@@ -18,16 +18,17 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-// Middleware для проверки Access токена
+// middleware for Access token check
 func JWT(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Получаем конфигурацию
+		// get config (need to fix)
 		cfg, err := config.GetConfig()
 		if err != nil {
-			zap.S().Fatalf("Ошибка получения конфигурации", zap.Error(err))
+			zap.S().Fatalf("get config error", zap.Error(err))
 			return
 		}
 
+		// logger init
 		zapLog, err := logger.New(cfg.LogLevel)
 		if err != nil {
 			zap.S().Fatalf("init logger error", zap.Error(err))
@@ -35,56 +36,53 @@ func JWT(next http.Handler) http.Handler {
 
 		log := zapLog.ZapLogger
 
-		// Извлекаем токен из заголовка Authorization
+		// extract token from header Authorization
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, "Отсутствует токен", http.StatusUnauthorized)
+			http.Error(w, "token is missing", http.StatusUnauthorized)
 			return
 		}
 
-		// Проверяем, что токен начинается с 'Bearer '
+		// check is token start with 'Bearer '
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "Неверный формат токена", http.StatusUnauthorized)
+			http.Error(w, "invalid token format", http.StatusUnauthorized)
 			return
 		}
 
-		// Убираем префикс 'Bearer '
+		// trim prefix 'Bearer '
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// Выводим полученный токен
-		log.Info("Полученный токен", zap.String("token", tokenString))
+		// get token
+		log.Info("Token:", zap.String("token", tokenString))
 
-		// Определяем, куда будет сохраняться информация из токена
+		// where save info from token
 		claims := &Claims{}
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			// Убедитесь, что метод подписи верный
+			// check method is true
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("неожиданный метод подписи: %v", token.Header["alg"])
+				return nil, fmt.Errorf("method is not correct: %v", token.Header["alg"])
 			}
 			return []byte(cfg.SecretKey), nil
 		})
 
-		// Проверяем валидность токена
+		// check token is valid
 		if err != nil {
-			log.Error("Ошибка разбора токена: %v", zap.Error(err)) // Вывод ошибки разбора токена
-			http.Error(w, "Неверный токен", http.StatusUnauthorized)
+			log.Error("token parsing error: %v", zap.Error(err))
+			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
 
 		if !token.Valid {
-			log.Error("Токен недействителен") // Сообщение о том, что токен недействителен
-			http.Error(w, "Неверный токен", http.StatusUnauthorized)
+			log.Error("invalid token")
+			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
 
-		// Выводим разобранные claims
-		zap.S().Infof("Разобранные claims: %+v", claims)
+		zap.S().Infof("claims: %+v", claims)
 
-		// Добавляем user_id в контекст запроса
 		ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
 
-		// Передаём запрос дальше по цепочке
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

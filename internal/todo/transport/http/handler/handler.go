@@ -253,7 +253,7 @@ func (h *TodoHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// SetStatus - создаёт новый статус
+// SetStatus
 func (h *TodoHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
 	var status dto.PostStatusDto
 	if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
@@ -270,7 +270,7 @@ func (h *TodoHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(status)
 }
 
-// DeleteStatus - удаляет существующий статус
+// DeleteStatus
 func (h *TodoHandler) DeleteStatus(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -282,6 +282,7 @@ func (h *TodoHandler) DeleteStatus(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Register new user
 func (h *TodoHandler) RegisterNewUser(w http.ResponseWriter, r *http.Request) {
 	var user dto.PostUserDto
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -297,6 +298,7 @@ func (h *TodoHandler) RegisterNewUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// Login user
 func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	var user dto.PostUserDto
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -353,6 +355,7 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(accessTokenValue)
 }
 
+// Get active user
 func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 	var user dto.PostUserDto
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -380,6 +383,7 @@ func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(userID)
 }
 
+// Logout user
 func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 	var user dto.PostUserDto
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -407,7 +411,7 @@ func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  expiredCookie,
 		HttpOnly: true,
-		Secure:   false, // Используйте true, если у вас HTTPS
+		Secure:   false,
 	}
 
 	refreshTokenCokie := http.Cookie{
@@ -416,7 +420,7 @@ func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  expiredCookie,
 		HttpOnly: true,
-		Secure:   false, // Используйте true, если у вас HTTPS
+		Secure:   false,
 	}
 
 	http.SetCookie(w, &accessTokenCokie)
