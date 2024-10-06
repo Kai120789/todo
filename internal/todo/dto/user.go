@@ -6,5 +6,6 @@ type GetUserDto struct {
 
 type PostUserDto struct {
 	Username     string `json:"username"`
+	TgName       string `json:"tg_name"`
 	PasswordHash string `json:"password_hash"`
 }

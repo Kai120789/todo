@@ -287,8 +287,8 @@ func (d *Storage) DeleteStatus(id uint) error {
 // register new user
 func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error) {
 	var id uint
-	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id`
-	err := d.db.QueryRow(context.Background(), query, body.Username, body.PasswordHash).Scan(&id)
+	query := `INSERT INTO users (username, tg_name, password_hash) VALUES ($1, $2, $3) RETURNING id`
+	err := d.db.QueryRow(context.Background(), query, body.Username, body.TgName, body.PasswordHash).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
