@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
+	"todo/internal/todo/utils/hash"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -303,18 +304,21 @@ func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, erro
 // login user
 func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error) {
 	var id uint
+	var passwordHash string
 
-	// Запрос на проверку существования пользователя с указанными логином и паролем
-	query := `SELECT id FROM users WHERE username=$1 AND password_hash=$2`
-	err := d.db.QueryRow(context.Background(), query, body.Username, body.PasswordHash).Scan(&id)
+	query := `SELECT id, password_hash FROM users WHERE username=$1`
+	err := d.db.QueryRow(context.Background(), query, body.Username).Scan(&id, &passwordHash)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, 0, fmt.Errorf("user not found") // Пользователь не найден
+			return nil, 0, fmt.Errorf("user not found")
 		}
-		return nil, 0, err // Другие возможные ошибки
+		return nil, 0, err
 	}
 
-	// Если пользователь найден, возвращаем его данные
+	if !hash.CheckPasswordHash(body.PasswordHash, passwordHash) {
+		return nil, 0, err
+	}
+
 	userRet, err := d.GetAuthUser(id)
 	if err != nil {
 		return nil, 0, err

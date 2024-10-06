@@ -8,6 +8,7 @@ import (
 	"time"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
+	"todo/internal/todo/utils/hash"
 	"todo/internal/todo/utils/tokens"
 
 	"github.com/go-chi/chi/v5"
@@ -290,6 +291,14 @@ func (h *TodoHandler) RegisterNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	passwordHash, err := hash.HashPassword(user.PasswordHash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user.PasswordHash = passwordHash
+
 	if _, err := h.service.RegisterNewUser(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -362,6 +371,7 @@ func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
+
 	_, userID, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
