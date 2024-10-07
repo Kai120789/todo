@@ -1,7 +1,7 @@
 -- test inserts in all tables
 
 INSERT INTO users (id, username, tg_name, password_hash)
-VALUES (1, 'testUser', 'zOOmer120789', 'QWERTYU')
+VALUES (1, 'testUser', 'test', 'QWERTYU')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO boards (id, name)

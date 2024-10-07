@@ -164,7 +164,3 @@ func (d *Storage) ChangeEndedTasksStatus() error {
 
 	return nil
 }
-
-func CreateTask() {
-
-}

@@ -37,6 +37,8 @@ type Storager interface {
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
+
+	GetChatID(task *models.Task) (int64, error)
 }
 
 func New(stor Storager, logger *zap.Logger) *TodoService {
@@ -134,7 +136,12 @@ func (t *TodoService) SetTask(body dto.PostTaskDto) error {
 		return err
 	}
 
-	err = tg.Create(task)
+	chatID, err := t.storage.GetChatID(task)
+	if err != nil {
+		return err
+	}
+
+	err = tg.Create(task, chatID)
 	if err != nil {
 		return err
 	}

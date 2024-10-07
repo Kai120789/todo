@@ -32,7 +32,7 @@ func StartTgBot() {
 	log := zapLog.ZapLogger
 
 	// connect to postgres db
-	dbConn, err := storage.Connection("postgres://postgres:123456@localhost:5431/taskdb?sslmode=disable")
+	dbConn, err := storage.Connection(cfg.DBDSN)
 	if err != nil {
 		log.Fatal("error connect to db", zap.Error(err))
 	}

@@ -21,6 +21,15 @@ services:
       - "8082:8082"
     networks:
       - task-net
+  tg-bot:
+    build:
+      context: ..
+      dockerfile: ./buildtg/Dockerfile
+    container_name: tgbot
+    depends_on:
+      - postgres
+    networks:
+      - task-net
 
 volumes:
   db-data:

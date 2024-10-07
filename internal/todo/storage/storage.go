@@ -40,6 +40,8 @@ type Storager interface {
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
+
+	GetChatID(task *models.Task) (int64, error)
 }
 
 func New(Conn *pgxpool.Pool, log *zap.Logger) *Storage {
@@ -162,14 +164,9 @@ func (d *Storage) SetTask(body dto.PostTaskDto) (*models.Task, error) {
 		return nil, err
 	}
 
-	statusId, err := strconv.ParseUint(body.StatusId, 10, 32)
-	if err != nil {
-		return nil, err
-	}
-
 	var id uint
 	query := `INSERT INTO tasks (title, description, board_id, status_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err = d.db.QueryRow(context.Background(), query, body.Title, body.Description, boardId, statusId, userId).Scan(&id)
+	err = d.db.QueryRow(context.Background(), query, body.Title, body.Description, boardId, 1, userId).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -377,6 +374,40 @@ func (d *Storage) WriteRefreshToken(userId uint, refreshTokenValue string) error
 	}
 
 	return nil
+}
+
+func (d *Storage) GetChatID(task *models.Task) (int64, error) {
+	var userID uint
+	query := `SELECT user_id FROM tasks WHERE id=$1`
+	err := d.db.QueryRow(context.Background(), query, task.ID).Scan(&userID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, fmt.Errorf("user not found")
+		}
+		return 0, err
+	}
+
+	var tgName string
+	query = `SELECT tg_name FROM users WHERE id=$1`
+	err = d.db.QueryRow(context.Background(), query, userID).Scan(&tgName)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, fmt.Errorf("username not found")
+		}
+		return 0, err
+	}
+
+	var chatID int64
+	query = `SELECT chat_id FROM tg_id WHERE tg_name=$1`
+	err = d.db.QueryRow(context.Background(), query, tgName).Scan(&chatID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, fmt.Errorf("username not found")
+		}
+		return 0, err
+	}
+
+	return chatID, err
 }
 
 func (d *Storage) Close() error {
