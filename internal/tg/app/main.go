@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"todo/internal/tg/config"
+	tgservice "todo/internal/tg/service"
 	tgstorage "todo/internal/tg/storage"
 	"todo/internal/todo/storage"
 	"todo/pkg/logger"
@@ -49,6 +50,8 @@ func StartTgBot() {
 
 	store := tgstorage.New(dbConn, log)
 
+	serv := tgservice.New(store, log)
+
 	// Запуск задачи в 00:00
 	//gocron.Every(1).Day().At("00:00").Do(sendDailyReport)
 
@@ -93,10 +96,14 @@ func StartTgBot() {
 				}
 				bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
 
-			case "add_task":
+			case "my_tasks":
 				// Пример добавления задачи
-				// addTask(update.Message.From.ID, "Пример задачи")
-				bot.Send(tgbotapi.NewMessage(chatID, "Задача добавлена!"))
+				message, _, err := serv.GetMyTasks(tgUsername)
+				if err != nil {
+					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка поиска задач"))
+					return
+				}
+				bot.Send(tgbotapi.NewMessage(chatID, message))
 
 			case "add_board":
 				// Пример добавления доски
