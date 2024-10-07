@@ -1,4 +1,4 @@
-package storage
+package tgstorage
 
 import (
 	"context"
@@ -13,7 +13,7 @@ type Storage struct {
 }
 
 type Storager interface {
-	RegisterUser()
+	RegisterUser(upd int, tgName string, chatID int64) error
 	SendTask()
 	DailyReport()
 }
@@ -31,7 +31,18 @@ func Connection(connectionStr string) (*pgxpool.Pool, error) {
 	return db, nil
 }
 
-func RegisterUser() {
+func (d *Storage) RegisterUser(upd int, tgName string, chatID int64) error {
+	query := `INSERT INTO tg_id (tg_name, chat_id) VALUES ($1, $2)`
+	_, err := d.db.Exec(context.Background(), query, tgName, chatID)
+	if err != nil {
+		fmt.Printf("Error registering user: %v\n", err)
+		return err
+	}
+
+	return nil
+}
+
+func (d *Storage) GetMyTasks() {
 
 }
 

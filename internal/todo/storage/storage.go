@@ -344,6 +344,19 @@ func (d *Storage) GetAuthUser(id uint) (*models.UserToken, error) {
 	return &token, nil
 }
 
+// get tg_name by id
+func (d *Storage) GetTgName(id uint) (string, error) {
+	var tgName string
+
+	query := `SELECT tg_name FROM users WHERE id = $1`
+	err := d.db.QueryRow(context.Background(), query, id).Scan(&tgName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get tg_name for user with id %d: %w", id, err)
+	}
+
+	return tgName, nil
+}
+
 // logout user
 func (d *Storage) UserLogout(id uint) error {
 	query := `DELETE FROM user_token WHERE user_id=$1`

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"todo/internal/tg/config"
+	tgstorage "todo/internal/tg/storage"
 	"todo/internal/todo/storage"
 	"todo/pkg/logger"
 
@@ -30,7 +31,7 @@ func StartTgBot() {
 	log := zapLog.ZapLogger
 
 	// connect to postgres db
-	dbConn, err := storage.Connection(cfg.DBDSN)
+	dbConn, err := storage.Connection("postgres://postgres:123456@localhost:5431/taskdb?sslmode=disable")
 	if err != nil {
 		log.Fatal("error connect to db", zap.Error(err))
 	}
@@ -45,6 +46,8 @@ func StartTgBot() {
 	_ = log
 
 	defer dbConn.Close()
+
+	store := tgstorage.New(dbConn, log)
 
 	// Запуск задачи в 00:00
 	//gocron.Every(1).Day().At("00:00").Do(sendDailyReport)
@@ -71,20 +74,37 @@ func StartTgBot() {
 		}
 
 		if update.Message.IsCommand() {
+			chatID := update.Message.Chat.ID           // Получаем Chat ID
+			tgUsername := update.Message.From.UserName // Получаем Telegram username
+
+			// Проверяем, что у пользователя есть username
+			if tgUsername == "" {
+				bot.Send(tgbotapi.NewMessage(chatID, "У вас не установлен Telegram username"))
+				return
+			}
+
 			switch update.Message.Command() {
 			case "start":
-				// Логика для регистрации пользователя
-				//registerUser(update.Message.From.ID, update.Message.From.UserName)
-				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы зарегистрированы!"))
+				// Пример логики для регистрации пользователя в базе данных
+				err := store.RegisterUser(update.Message.From.ID, tgUsername, chatID)
+				if err != nil {
+					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при регистрации"))
+					return
+				}
+				bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
+
 			case "add_task":
 				// Пример добавления задачи
-				//addTask(update.Message.From.ID, "Пример задачи")
-				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Задача добавлена!"))
+				// addTask(update.Message.From.ID, "Пример задачи")
+				bot.Send(tgbotapi.NewMessage(chatID, "Задача добавлена!"))
+
 			case "add_board":
 				// Пример добавления доски
-				//addBoard(update.Message.From.ID, "Пример доски")
-				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Доска добавлена!"))
+				// addBoard(update.Message.From.ID, "Пример доски")
+				bot.Send(tgbotapi.NewMessage(chatID, "Доска добавлена!"))
 			}
 		}
+
 	}
+
 }
