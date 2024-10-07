@@ -52,7 +52,7 @@ func StartTgBot() {
 
 	serv := tgservice.New(store, log)
 
-	// Запуск задачи в 00:00
+	// all tasks at 00:00
 	gocron.Every(1).Day().At("00:00").Do(func() {
 		users, err := store.GetAllUsers()
 		if err != nil {
@@ -66,19 +66,29 @@ func StartTgBot() {
 				log.Error("Ошибка получения задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
 				continue
 			}
-			// Отправляем сообщение пользователю
 			bot.Send(tgbotapi.NewMessage(user.ChatID, message))
+
+			message, _, err = serv.GetMyEndedTasks(user.TgName)
+			if err != nil {
+				log.Error("Ошибка получения задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
+				continue
+			}
+			bot.Send(tgbotapi.NewMessage(user.ChatID, message))
+
+			err = serv.ChangeEndedTasksStatus()
+			if err != nil {
+				log.Error("Ошибка побновления статуса", zap.String("tgName", user.TgName), zap.Error(err))
+				return
+			}
 		}
 	})
 
-	// Запуск планировщика
 	go func() {
 		for range time.Tick(1 * time.Second) {
 			gocron.RunPending()
 		}
 	}()
 
-	// Обработка обновлений
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -93,10 +103,9 @@ func StartTgBot() {
 		}
 
 		if update.Message.IsCommand() {
-			chatID := update.Message.Chat.ID           // Получаем Chat ID
-			tgUsername := update.Message.From.UserName // Получаем Telegram username
+			chatID := update.Message.Chat.ID
+			tgUsername := update.Message.From.UserName
 
-			// Проверяем, что у пользователя есть username
 			if tgUsername == "" {
 				bot.Send(tgbotapi.NewMessage(chatID, "У вас не установлен Telegram username"))
 				return
@@ -104,7 +113,6 @@ func StartTgBot() {
 
 			switch update.Message.Command() {
 			case "start":
-				// Пример логики для регистрации пользователя в базе данных
 				err := store.RegisterUser(update.Message.From.ID, tgUsername, chatID)
 				if err != nil {
 					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при регистрации"))
@@ -113,18 +121,12 @@ func StartTgBot() {
 				bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
 
 			case "my_tasks":
-				// Пример добавления задачи
 				message, _, err := serv.GetMyTasks(tgUsername)
 				if err != nil {
 					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка поиска задач"))
 					return
 				}
 				bot.Send(tgbotapi.NewMessage(chatID, message))
-
-			case "add_board":
-				// Пример добавления доски
-				// addBoard(update.Message.From.ID, "Пример доски")
-				bot.Send(tgbotapi.NewMessage(chatID, "Доска добавлена!"))
 			}
 		}
 

@@ -12,7 +12,20 @@ func FormatTasksMessage(tasks []models.Task) string {
 
 	message := "Ваши задачи:\n"
 	for i, task := range tasks {
-		message += fmt.Sprintf("%d. %s\nОписание: %s\nСтатус: %d\n\n", i+1, task.Title, task.Description, task.StatusId)
+		message += fmt.Sprintf("%d. %s\nОписание: %s\nСтатус: %s\n\n", i+1, task.Title, task.Description, "в процессе")
+	}
+
+	return message
+}
+
+func FormatEndedTasksMessage(tasks []models.Task) string {
+	if len(tasks) == 0 {
+		return "У вас нет задач, завершенных сегодня."
+	}
+
+	message := "Ваши завершенные задачи:\n"
+	for i, task := range tasks {
+		message += fmt.Sprintf("%d. %s\nОписание: %s\nСтатус: %s\n\n", i+1, task.Title, task.Description, "выполнено")
 	}
 
 	return message

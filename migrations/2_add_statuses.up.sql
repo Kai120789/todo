@@ -5,3 +5,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO statuses (id, type)
 VALUES (2, 'done')
 ON CONFLICT DO NOTHING;
+
+INSERT INTO statuses (id, type)
+VALUES (3, 'archived')
+ON CONFLICT DO NOTHING;
