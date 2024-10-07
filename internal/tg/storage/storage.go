@@ -16,6 +16,7 @@ type Storage struct {
 
 type Storager interface {
 	RegisterUser(upd int, tgName string, chatID int64) error
+	GetAllUsers() ([]models.TgUser, error)
 	SendTask()
 	DailyReport()
 }
@@ -84,6 +85,30 @@ func (d *Storage) GetMyTasks(tgName string) ([]models.Task, int64, error) {
 	}
 
 	return tasks, chatId, nil
+}
+
+func (d *Storage) GetAllUsers() ([]models.TgUser, error) {
+	query := `SELECT tg_name, chat_id FROM tg_id`
+	rows, err := d.db.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.TgUser
+	for rows.Next() {
+		var user models.TgUser
+		if err := rows.Scan(&user.TgName, &user.ChatID); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func CreateTask() {

@@ -53,7 +53,23 @@ func StartTgBot() {
 	serv := tgservice.New(store, log)
 
 	// Запуск задачи в 00:00
-	//gocron.Every(1).Day().At("00:00").Do(sendDailyReport)
+	gocron.Every(1).Day().At("00:00").Do(func() {
+		users, err := store.GetAllUsers()
+		if err != nil {
+			log.Error("Ошибка при получении пользователей", zap.Error(err))
+			return
+		}
+
+		for _, user := range users {
+			message, _, err := serv.GetMyTasks(user.TgName)
+			if err != nil {
+				log.Error("Ошибка получения задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
+				continue
+			}
+			// Отправляем сообщение пользователю
+			bot.Send(tgbotapi.NewMessage(user.ChatID, message))
+		}
+	})
 
 	// Запуск планировщика
 	go func() {
