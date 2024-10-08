@@ -3,9 +3,11 @@ package services
 import (
 	"fmt"
 	"strconv"
-	"todo/internal/todo/api/tg"
+	"todo/internal/todo/api"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
+
+	"github.com/jasonlvhit/gocron"
 
 	"go.uber.org/zap"
 )
@@ -33,12 +35,16 @@ type Storager interface {
 	DeleteStatus(id uint) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 
-	GetChatID(task *models.Task) (int64, error)
+	GetAllUsers() ([]models.TgUser, error)
+	GetChatID(task *models.Task) (*int64, error)
+	AddChatID(tgName string, chatID int64) error
+	GetMyTasks(tgName string, status int) ([]models.Task, *int64, error)
+	ChangeEndedTasksStatus() error
 }
 
 func New(stor Storager, logger *zap.Logger) *TodoService {
@@ -141,7 +147,7 @@ func (t *TodoService) SetTask(body dto.PostTaskDto) error {
 		return err
 	}
 
-	err = tg.Create(task, chatID)
+	err = api.Create(task, *chatID)
 	if err != nil {
 		return err
 	}
@@ -238,14 +244,14 @@ func (t *TodoService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, 
 	return token, nil
 }
 
-func (t *TodoService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error) {
+func (t *TodoService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
 	if body.Username == "" {
-		return nil, 0, fmt.Errorf("username cannot be empty")
+		return nil, nil, fmt.Errorf("username cannot be empty")
 	}
 
 	token, id, err := t.storage.AuthorizateUser(body)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	return token, id, nil
@@ -276,4 +282,52 @@ func (t *TodoService) WriteRefreshToken(userId uint, refreshTokenValue string) e
 	}
 
 	return nil
+}
+
+func (t *TodoService) AddChatID(tgName string, chatID int64) error {
+	err := t.storage.AddChatID(tgName, chatID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TodoService) SendDailyReport() {
+	users, err := t.storage.GetAllUsers()
+	if err != nil {
+		zap.L().Error("Ошибка при получении пользователей", zap.Error(err))
+		return
+	}
+
+	for _, user := range users {
+		message, _, err := t.storage.GetMyTasks(user.TgName, 1)
+		if err != nil {
+			zap.S().Error("Ошибка получения задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
+			continue
+		}
+		api.SendDailyReports(message, user.ChatID, 1)
+
+		message, _, err = t.storage.GetMyTasks(user.TgName, 2)
+		if err != nil {
+			zap.S().Error("Ошибка получения выполненных задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
+			continue
+		}
+		api.SendDailyReports(message, user.ChatID, 2)
+
+		err = t.storage.ChangeEndedTasksStatus()
+		if err != nil {
+			zap.L().Error("Ошибка обновления статуса задач", zap.String("tgName", user.TgName), zap.Error(err))
+		}
+	}
+}
+
+func (t *TodoService) StartScheduler() {
+	gocron.Every(1).Day().At("00:00").Do(func() {
+		t.SendDailyReport()
+	})
+
+	go func() {
+		<-gocron.Start()
+	}()
 }

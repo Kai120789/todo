@@ -2,13 +2,15 @@ package app
 
 import (
 	"fmt"
+	"net/http"
 	"time"
+	"todo/internal/tg/api"
 	"todo/internal/tg/config"
-	tgservice "todo/internal/tg/service"
-	tgstorage "todo/internal/tg/storage"
-	"todo/internal/todo/storage"
+	"todo/internal/tg/handler"
+	"todo/internal/tg/service"
 	"todo/pkg/logger"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jasonlvhit/gocron"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -31,12 +33,6 @@ func StartTgBot() {
 
 	log := zapLog.ZapLogger
 
-	// connect to postgres db
-	dbConn, err := storage.Connection(cfg.DBDSN)
-	if err != nil {
-		log.Fatal("error connect to db", zap.Error(err))
-	}
-
 	// bot init
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
@@ -46,46 +42,23 @@ func StartTgBot() {
 
 	_ = log
 
-	defer dbConn.Close()
-
-	store := tgstorage.New(dbConn, log)
-
-	serv := tgservice.New(store, log)
-
-	// all tasks at 00:00
-	gocron.Every(1).Day().At("00:00").Do(func() {
-		users, err := store.GetAllUsers()
-		if err != nil {
-			log.Error("Ошибка при получении пользователей", zap.Error(err))
-			return
-		}
-
-		for _, user := range users {
-			message, _, err := serv.GetMyTasks(user.TgName)
-			if err != nil {
-				log.Error("Ошибка получения задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
-				continue
-			}
-			bot.Send(tgbotapi.NewMessage(user.ChatID, message))
-
-			message, _, err = serv.GetMyEndedTasks(user.TgName)
-			if err != nil {
-				log.Error("Ошибка получения задач для пользователя", zap.String("tgName", user.TgName), zap.Error(err))
-				continue
-			}
-			bot.Send(tgbotapi.NewMessage(user.ChatID, message))
-
-			err = serv.ChangeEndedTasksStatus()
-			if err != nil {
-				log.Error("Ошибка побновления статуса", zap.String("tgName", user.TgName), zap.Error(err))
-				return
-			}
-		}
-	})
-
 	go func() {
 		for range time.Tick(1 * time.Second) {
 			gocron.RunPending()
+		}
+	}()
+
+	serv := service.New(log)
+
+	h := handler.New(serv, log)
+
+	r := chi.NewRouter()
+	r.Post("/create-task", h.CreateTask) //- достаем из боди дто созданной задачи, форматируем в строку и отправляем в телеграм
+	r.Post("/scheduler", h.Scheduler)    //- достаем из боди массив дто выполненных задачи, форматируем в массив строк и отправляем в телеграм
+
+	go func() {
+		if err := http.ListenAndServe(":8081", r); err != nil {
+			log.Fatal("Failed to start HTTP server", zap.Error(err))
 		}
 	}()
 
@@ -113,20 +86,11 @@ func StartTgBot() {
 
 			switch update.Message.Command() {
 			case "start":
-				err := store.RegisterUser(update.Message.From.ID, tgUsername, chatID)
-				if err != nil {
-					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при регистрации"))
-					return
+				if api.AddChatID(tgUsername, chatID, cfg.ToDoAppURL) {
+					bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
+				} else {
+					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при регистрации. Попробуйте снова."))
 				}
-				bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
-
-			case "my_tasks":
-				message, _, err := serv.GetMyTasks(tgUsername)
-				if err != nil {
-					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка поиска задач"))
-					return
-				}
-				bot.Send(tgbotapi.NewMessage(chatID, message))
 			}
 		}
 

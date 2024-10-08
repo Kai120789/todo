@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	TelegramToken string
-	DBDSN         string
+	ToDoAppURL    string
 	LogLevel      string
 }
 
@@ -24,10 +24,10 @@ func GetConfig() (*Config, error) {
 		cfg.TelegramToken = zapcore.ErrorLevel.String()
 	}
 
-	if envDBConn := os.Getenv("DBDSN"); envDBConn != "" {
-		cfg.DBDSN = envDBConn
+	if toDoAppURL := os.Getenv("TODO_APP_URL"); toDoAppURL != "" {
+		cfg.ToDoAppURL = toDoAppURL
 	} else {
-		cfg.DBDSN = zapcore.ErrorLevel.String()
+		cfg.ToDoAppURL = "0.0.0.0:8080"
 	}
 
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {

@@ -42,6 +42,8 @@ func StartServer() {
 	// create service
 	serv := services.New(store, log)
 
+	serv.StartScheduler()
+
 	// init handler
 	handl := handler.New(serv, log)
 
@@ -59,6 +61,4 @@ func StartServer() {
 	if err := srv.ListenAndServe(); err != nil {
 		log.Error("failed to start server", zap.Error(err))
 	}
-
-	log.Error("server stopped")
 }

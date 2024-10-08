@@ -36,12 +36,16 @@ type Storager interface {
 	DeleteStatus(id uint) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
 
+	GetAllUsers() ([]models.TgUser, error)
 	GetChatID(task *models.Task) (int64, error)
+	AddChatID(tgName string, chatID int64) error
+	GetMyTasks(tgName string, status int) ([]models.Task, int64, error)
+	ChangeEndedTasksStatus() error
 }
 
 func New(Conn *pgxpool.Pool, log *zap.Logger) *Storage {
@@ -299,7 +303,7 @@ func (d *Storage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, erro
 }
 
 // login user
-func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error) {
+func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
 	var id uint
 	var passwordHash string
 
@@ -307,21 +311,21 @@ func (d *Storage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint
 	err := d.db.QueryRow(context.Background(), query, body.Username).Scan(&id, &passwordHash)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, 0, fmt.Errorf("user not found")
+			return nil, nil, fmt.Errorf("user not found")
 		}
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	if !hash.CheckPasswordHash(body.PasswordHash, passwordHash) {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	userRet, err := d.GetAuthUser(id)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
-	return userRet, id, nil
+	return userRet, &id, nil
 }
 
 // get auth user
@@ -376,15 +380,15 @@ func (d *Storage) WriteRefreshToken(userId uint, refreshTokenValue string) error
 	return nil
 }
 
-func (d *Storage) GetChatID(task *models.Task) (int64, error) {
+func (d *Storage) GetChatID(task *models.Task) (*int64, error) {
 	var userID uint
 	query := `SELECT user_id FROM tasks WHERE id=$1`
 	err := d.db.QueryRow(context.Background(), query, task.ID).Scan(&userID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return 0, fmt.Errorf("user not found")
+			return nil, fmt.Errorf("user not found")
 		}
-		return 0, err
+		return nil, err
 	}
 
 	var tgName string
@@ -392,22 +396,22 @@ func (d *Storage) GetChatID(task *models.Task) (int64, error) {
 	err = d.db.QueryRow(context.Background(), query, userID).Scan(&tgName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return 0, fmt.Errorf("username not found")
+			return nil, fmt.Errorf("username not found")
 		}
-		return 0, err
+		return nil, err
 	}
 
 	var chatID int64
-	query = `SELECT chat_id FROM tg_id WHERE tg_name=$1`
+	query = `SELECT chat_id FROM users WHERE tg_name=$1`
 	err = d.db.QueryRow(context.Background(), query, tgName).Scan(&chatID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return 0, fmt.Errorf("username not found")
+			return nil, fmt.Errorf("username not found")
 		}
-		return 0, err
+		return nil, err
 	}
 
-	return chatID, err
+	return &chatID, err
 }
 
 func (d *Storage) Close() error {
@@ -415,5 +419,84 @@ func (d *Storage) Close() error {
 		return nil
 	}
 	d.db.Close()
+	return nil
+}
+
+func (d *Storage) AddChatID(tgName string, chatID int64) error {
+	query := `INSERT INTO users (chat_id) VALUES ($1) WHERE tg_name=$2`
+	_, err := d.db.Exec(context.Background(), query, chatID, tgName)
+	if err != nil {
+		fmt.Printf("Error registering user: %v\n", err)
+		return err
+	}
+
+	return nil
+}
+
+func (d *Storage) GetMyTasks(tgName string, status int) ([]models.Task, *int64, error) {
+	var id, chatID uint
+
+	query := `SELECT id FROM users WHERE tg_name=$1`
+	err := d.db.QueryRow(context.Background(), query, tgName).Scan(&id, &chatID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil, fmt.Errorf("user not found")
+		}
+		return nil, nil, err
+	}
+
+	query = `SELECT id, title, description, board_id, created_at, updated_at FROM tasks WHERE user_id=$1 and status_id=$2 ORDER BY updated_at`
+	rows, err := d.db.Query(context.Background(), query, id, status)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var tasks []models.Task
+	for rows.Next() {
+		var task models.Task
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.BoardId, &task.CreatedAt, &task.UpdatedAt)
+		if err != nil {
+			return nil, nil, err
+		}
+		tasks = append(tasks, task)
+	}
+
+	uintChatID := int64(chatID)
+
+	return tasks, &uintChatID, nil
+}
+
+func (d *Storage) GetAllUsers() ([]models.TgUser, error) {
+	query := `SELECT tg_name, chat_id FROM users`
+	rows, err := d.db.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.TgUser
+	for rows.Next() {
+		var user models.TgUser
+		if err := rows.Scan(&user.TgName, &user.ChatID); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (d *Storage) ChangeEndedTasksStatus() error {
+	query := `UPDATE tasks SET status_id = 3 WHERE status_id = 2`
+	_, err := d.db.Exec(context.Background(), query)
+	if err != nil {
+		return fmt.Errorf("ошибка при обновлении статуса задач: %w", err)
+	}
+
 	return nil
 }

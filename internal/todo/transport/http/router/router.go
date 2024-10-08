@@ -11,7 +11,7 @@ import (
 func New(todoHandler *handler.TodoHandler) http.Handler {
 	r := chi.NewRouter()
 
-	r.Route("/user", func(r chi.Router) {
+	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", todoHandler.RegisterNewUser)                 // register new user
 		r.Post("/login", todoHandler.AuthorizateUser)                    // login user
 		r.With(middleware.JWT).Get("/", todoHandler.GetAuthUser)         // get active user, need jwt
@@ -19,7 +19,7 @@ func New(todoHandler *handler.TodoHandler) http.Handler {
 	})
 
 	// Routes for boards
-	r.Route("/boards", func(r chi.Router) {
+	r.Route("/api/boards", func(r chi.Router) {
 		r.Use(middleware.JWT)                      // need jwt for all methods
 		r.Get("/", todoHandler.GetAllBoards)       // get all boards
 		r.Get("/{id}", todoHandler.GetBoard)       // get board with id
@@ -30,7 +30,7 @@ func New(todoHandler *handler.TodoHandler) http.Handler {
 	})
 
 	// Routes for tasks
-	r.Route("/tasks", func(r chi.Router) {
+	r.Route("/api/tasks", func(r chi.Router) {
 		r.Use(middleware.JWT)                     // need jwt for all methods
 		r.Get("/", todoHandler.GetAllTasks)       // get all tasks
 		r.Get("/{id}", todoHandler.GetTask)       // get task with id
@@ -40,11 +40,13 @@ func New(todoHandler *handler.TodoHandler) http.Handler {
 	})
 
 	// Routes for statuses
-	r.Route("/status", func(r chi.Router) {
+	r.Route("/api/status", func(r chi.Router) {
 		r.Use(middleware.JWT)                   // need jwt for all methods
 		r.Post("/", todoHandler.SetStatus)      // add new status
 		r.Delete("/", todoHandler.DeleteStatus) // delete status
 	})
+
+	r.Post("/addchatid", todoHandler.AddChatID)
 
 	return r
 }

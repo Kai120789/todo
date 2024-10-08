@@ -9,10 +9,12 @@ import (
 )
 
 type Config struct {
-	ServerAddress string
-	DBDSN         string
-	LogLevel      string
-	SecretKey     string
+	ServerAddress  string
+	DBDSN          string
+	LogLevel       string
+	SecretKey      string
+	TelegramToken  string
+	TelegramAppURL string
 }
 
 func GetConfig() (*Config, error) {
@@ -42,6 +44,18 @@ func GetConfig() (*Config, error) {
 		cfg.SecretKey = secretKey
 	} else {
 		cfg.SecretKey = zapcore.ErrorLevel.String()
+	}
+
+	if telegramToken := os.Getenv("TELEGRAM_BOT_TOKEN"); telegramToken != "" {
+		cfg.TelegramToken = telegramToken
+	} else {
+		cfg.TelegramToken = zapcore.ErrorLevel.String()
+	}
+
+	if telegramAppURL := os.Getenv("TODO_APP_URL"); telegramAppURL != "" {
+		cfg.TelegramAppURL = telegramAppURL
+	} else {
+		cfg.TelegramAppURL = zapcore.ErrorLevel.String()
 	}
 
 	flag.Parse()

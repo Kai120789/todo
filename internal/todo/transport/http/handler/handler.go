@@ -39,7 +39,8 @@ type TodoHandlerer interface {
 	DeleteStatus(id string) error
 
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
+	AddChatID(tgName string, chatID int64) error
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
@@ -321,13 +322,13 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessTokenValue, err := tokens.GenerateJWT(userID, time.Now().Add(15*time.Minute))
+	accessTokenValue, err := tokens.GenerateJWT(*userID, time.Now().Add(15*time.Minute))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	refreshTokenValue, err := tokens.GenerateJWT(userID, time.Now().Add(2*time.Hour*24*30))
+	refreshTokenValue, err := tokens.GenerateJWT(*userID, time.Now().Add(2*time.Hour*24*30))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -354,7 +355,7 @@ func (h *TodoHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &accessTokenCokie)
 	http.SetCookie(w, &refreshTokenCokie)
 
-	err = h.service.WriteRefreshToken(userID, refreshTokenValue)
+	err = h.service.WriteRefreshToken(*userID, refreshTokenValue)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -378,7 +379,7 @@ func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user2, err := h.service.GetAuthUser(userID)
+	user2, err := h.service.GetAuthUser(*userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -391,6 +392,37 @@ func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(userID)
+
+}
+
+func (h *TodoHandler) AddChatID(w http.ResponseWriter, r *http.Request) {
+	// Получение и валидация входных данных
+	username := r.FormValue("username")
+	if username == "" {
+		h.logger.Error("Username is missing")
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	chatIDStr := r.FormValue("chatID")
+	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+	if err != nil {
+		h.logger.Error("Invalid chatID", zap.Error(err))
+		http.Error(w, "Invalid chatID", http.StatusBadRequest)
+		return
+	}
+
+	// Вызов сервисного слоя для добавления chatID
+	err = h.service.AddChatID(username, chatID)
+	if err != nil {
+		h.logger.Error("Failed to add chatID", zap.Error(err))
+		http.Error(w, "Failed to add chatID", http.StatusInternalServerError)
+		return
+	}
+
+	// Успешное добавление
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ChatID added successfully"))
 }
 
 // Logout user
@@ -407,7 +439,7 @@ func (h *TodoHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.UserLogout(userID)
+	err = h.service.UserLogout(*userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -13,7 +13,7 @@ services:
   app:
     build:
       context: ..
-      dockerfile: ./build/Dockerfile
+      dockerfile: ./build/todo/Dockerfile
     container_name: goapp
     depends_on:
       - postgres
@@ -24,10 +24,12 @@ services:
   tg-bot:
     build:
       context: ..
-      dockerfile: ./buildtg/Dockerfile
+      dockerfile: ./build/tg/Dockerfile
     container_name: tgbot
     depends_on:
       - postgres
+    ports:
+      - "8081:8081"
     networks:
       - task-net
 

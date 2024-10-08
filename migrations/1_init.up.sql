@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
     tg_name VARCHAR(50) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    chat_id INTEGER,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -43,10 +44,4 @@ CREATE TABLE IF NOT EXISTS user_token (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     refresh_token VARCHAR(200) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS tg_id (
-    id SERIAL PRIMARY KEY,
-    tg_name VARCHAR(50) UNIQUE NOT NULL,
-    chat_id INTEGER NOT NULL
 )
