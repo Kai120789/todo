@@ -147,7 +147,7 @@ func (t *TodoService) SetTask(body dto.PostTaskDto) error {
 		return err
 	}
 
-	err = api.Create(task, *chatID)
+	err = api.Create(*task, *chatID)
 	if err != nil {
 		return err
 	}
