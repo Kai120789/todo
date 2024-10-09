@@ -21,7 +21,7 @@ func Create(task models.Task, chatID int64) error {
 	}
 
 	client := &http.Client{}
-	createURL := fmt.Sprintf("%s/create-task", "http://localhost:8081")
+	createURL := fmt.Sprintf("%s/create-task", "http://host.docker.internalt:8081")
 
 	dto := TaskDtoChatID{
 		Title:       task.Title,
