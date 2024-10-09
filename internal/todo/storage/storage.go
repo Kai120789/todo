@@ -233,13 +233,8 @@ func (d *Storage) UpdateTask(body dto.PostTaskDto, id uint) (*models.Task, error
 		return nil, err
 	}
 
-	statusId, err := strconv.ParseUint(body.StatusId, 10, 32)
-	if err != nil {
-		return nil, err
-	}
-
 	query := `UPDATE tasks SET title=$1, description=$2, board_id=$3, status_id=$4, user_id=$5, updated_at=NOW() WHERE id=$6`
-	_, err = d.db.Exec(context.Background(), query, body.Title, body.Description, boardId, statusId, userId, id)
+	_, err = d.db.Exec(context.Background(), query, body.Title, body.Description, boardId, body.StatusId, userId, id)
 	if err != nil {
 		return nil, err
 	}

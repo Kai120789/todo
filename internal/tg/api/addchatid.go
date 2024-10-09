@@ -2,18 +2,29 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"todo/internal/tg/dto"
 
 	"go.uber.org/zap"
 )
 
 func AddChatID(username string, chatID int64, appURL string) bool {
 	client := &http.Client{}
-	registerURL := fmt.Sprintf("%s/addchatid", appURL)
+	registerURL := fmt.Sprintf("%s/add-chat-id", appURL)
 
-	var jsonStr = []byte(fmt.Sprintf(`{"tg_name":"%s", "chat_id":%d}`, username, chatID))
+	dto := dto.ChatID{
+		Username: username,
+		ChatID:   chatID,
+	}
+
+	jsonStr, err := json.Marshal(dto)
+	if err != nil {
+		zap.S().Error("error marshalling DTO", zap.Error(err))
+		return false
+	}
 
 	// Создание io.Reader из JSON
 	response, err := client.Post(registerURL, "application/json", bytes.NewBuffer(jsonStr))

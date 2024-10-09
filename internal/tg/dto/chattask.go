@@ -1,0 +1,8 @@
+package dto
+
+type TaskDtoChatID struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	StatusId    uint   `json:"status_id"`
+	ChatId      int64  `json:"chat_id"`
+}

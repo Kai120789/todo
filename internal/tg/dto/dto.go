@@ -1,4 +1,4 @@
-package models
+package dto
 
 type ChatID struct {
 	Username string `json:"tg_name"`

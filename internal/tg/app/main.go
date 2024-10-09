@@ -54,12 +54,10 @@ func StartTgBot() {
 	h := handler.New(serv, log)
 
 	r := chi.NewRouter()
-	r.Post("/create-task", h.CreateTask) //- достаем из боди дто созданной задачи, форматируем в строку и отправляем в телеграм
-	r.Post("/scheduler", h.Scheduler)    //- достаем из боди массив дто выполненных задачи, форматируем в массив строк и отправляем в телеграм
 
 	go func() {
 		srv := &http.Server{
-			Addr:    cfg.TgAddress,
+			Addr:    "localhost:8081",
 			Handler: r,
 		}
 
@@ -67,6 +65,9 @@ func StartTgBot() {
 			log.Error("failed to start server", zap.Error(err))
 		}
 	}()
+
+	r.Post("/create-task", h.CreateTask) //- достаем из боди дто созданной задачи, форматируем в строку и отправляем в телеграм
+	r.Post("/scheduler", h.Scheduler)    //- достаем из боди массив дто выполненных задачи, форматируем в массив строк и отправляем в телеграм
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60

@@ -46,7 +46,7 @@ func New(todoHandler *handler.TodoHandler) http.Handler {
 		r.Delete("/", todoHandler.DeleteStatus) // delete status
 	})
 
-	r.Post("/addchatid", todoHandler.AddChatID)
+	r.Post("/add-chat-id", todoHandler.AddChatID)
 
 	return r
 }

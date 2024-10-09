@@ -52,7 +52,7 @@ func GetConfig() (*Config, error) {
 		cfg.TelegramToken = zapcore.ErrorLevel.String()
 	}
 
-	if telegramAppURL := os.Getenv("TODO_APP_URL"); telegramAppURL != "" {
+	if telegramAppURL := os.Getenv("TELEGRAM_APP_URL"); telegramAppURL != "" {
 		cfg.TelegramAppURL = telegramAppURL
 	} else {
 		cfg.TelegramAppURL = zapcore.ErrorLevel.String()

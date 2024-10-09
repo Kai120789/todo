@@ -2,25 +2,39 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"todo/internal/todo/config"
 	"todo/internal/todo/models"
 
 	"go.uber.org/zap"
 )
 
 func Create(task models.Task, chatID int64) error {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return err
+
+	type TaskDtoChatID struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		StatusId    uint   `json:"status_id"`
+		ChatId      int64
 	}
 
 	client := &http.Client{}
-	createURL := fmt.Sprintf("%s/create-task", cfg.TelegramAppURL)
+	createURL := fmt.Sprintf("%s/create-task", "http://localhost:8081")
 
-	var jsonStr = []byte(fmt.Sprintf(`{"title":"%s", "description":"%s", "status_id":%d}`, task.Title, task.Description, task.StatusId))
+	dto := TaskDtoChatID{
+		Title:       task.Title,
+		Description: task.Description,
+		StatusId:    task.StatusId,
+		ChatId:      chatID,
+	}
+
+	jsonStr, err := json.Marshal(dto)
+	if err != nil {
+		zap.S().Error("error marshalling DTO", zap.Error(err))
+		return err
+	}
 
 	// Создание io.Reader из JSON
 	response, err := client.Post(createURL, "application/json", bytes.NewBuffer(jsonStr))
