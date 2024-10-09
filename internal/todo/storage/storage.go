@@ -423,7 +423,7 @@ func (d *Storage) Close() error {
 }
 
 func (d *Storage) AddChatID(tgName string, chatID int64) error {
-	query := `INSERT INTO users (chat_id) VALUES ($1) WHERE tg_name=$2`
+	query := `UPDATE users SET chat_id = $1 WHERE tg_name = $2`
 	_, err := d.db.Exec(context.Background(), query, chatID, tgName)
 	if err != nil {
 		fmt.Printf("Error registering user: %v\n", err)

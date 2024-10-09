@@ -15,7 +15,6 @@ type TgHandler struct {
 type TgHandlerer interface {
 	CreateTask(task *models.Task, chatID int64) error
 	Scheduler(tasks []models.Task, chatID int64) error
-	SendDailyReports(tasks []models.Task, chatID int64, status int) error
 }
 
 func New(t TgHandlerer, logger *zap.Logger) TgHandler {

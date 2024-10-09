@@ -8,6 +8,7 @@ import (
 	"todo/internal/tg/config"
 	"todo/internal/tg/handler"
 	"todo/internal/tg/service"
+
 	"todo/pkg/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -57,8 +58,13 @@ func StartTgBot() {
 	r.Post("/scheduler", h.Scheduler)    //- достаем из боди массив дто выполненных задачи, форматируем в массив строк и отправляем в телеграм
 
 	go func() {
-		if err := http.ListenAndServe(":8081", r); err != nil {
-			log.Fatal("Failed to start HTTP server", zap.Error(err))
+		srv := &http.Server{
+			Addr:    cfg.TgAddress,
+			Handler: r,
+		}
+
+		if err := srv.ListenAndServe(); err != nil {
+			log.Error("failed to start server", zap.Error(err))
 		}
 	}()
 
@@ -86,6 +92,7 @@ func StartTgBot() {
 
 			switch update.Message.Command() {
 			case "start":
+				fmt.Println(tgUsername, chatID, cfg.ToDoAppURL)
 				if api.AddChatID(tgUsername, chatID, cfg.ToDoAppURL) {
 					bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
 				} else {

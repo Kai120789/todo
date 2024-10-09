@@ -13,7 +13,6 @@ type TgService struct {
 type TgServiceer interface {
 	CreateTask(task *models.Task, chatID int64) error
 	Scheduler(tasks []models.Task, chatID int64) error
-	SendDailyReports(tasks []models.Task, chatID int64, status int) error
 }
 
 // Конструктор для TgService

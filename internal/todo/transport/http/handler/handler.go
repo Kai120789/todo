@@ -396,33 +396,19 @@ func (h *TodoHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TodoHandler) AddChatID(w http.ResponseWriter, r *http.Request) {
-	// Получение и валидация входных данных
-	username := r.FormValue("username")
-	if username == "" {
-		h.logger.Error("Username is missing")
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	var user dto.PostUserDto
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	chatIDStr := r.FormValue("chatID")
-	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+	err := h.service.AddChatID(user.TgName, user.ChatID)
 	if err != nil {
-		h.logger.Error("Invalid chatID", zap.Error(err))
-		http.Error(w, "Invalid chatID", http.StatusBadRequest)
+		http.Error(w, "No tg user", http.StatusUnauthorized)
 		return
 	}
 
-	// Вызов сервисного слоя для добавления chatID
-	err = h.service.AddChatID(username, chatID)
-	if err != nil {
-		h.logger.Error("Failed to add chatID", zap.Error(err))
-		http.Error(w, "Failed to add chatID", http.StatusInternalServerError)
-		return
-	}
-
-	// Успешное добавление
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ChatID added successfully"))
+	w.WriteHeader(http.StatusCreated)
 }
 
 // Logout user

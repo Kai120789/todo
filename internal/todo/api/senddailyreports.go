@@ -6,5 +6,5 @@ import (
 
 // SendDailyReports отправляет ежедневные отчеты в Telegram
 func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
-
+	return nil
 }

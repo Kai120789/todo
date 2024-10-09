@@ -1,9 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
-	"net/url"
 
 	"go.uber.org/zap"
 )
@@ -12,17 +13,23 @@ func AddChatID(username string, chatID int64, appURL string) bool {
 	client := &http.Client{}
 	registerURL := fmt.Sprintf("%s/addchatid", appURL)
 
-	data := url.Values{
-		"username": {username},
-		"chatID":   {fmt.Sprintf("%d", chatID)},
-	}
+	var jsonStr = []byte(fmt.Sprintf(`{"tg_name":"%s", "chat_id":%d}`, username, chatID))
 
-	response, err := client.PostForm(registerURL, data)
+	// Создание io.Reader из JSON
+	response, err := client.Post(registerURL, "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		zap.S().Error("error during user registration", zap.Error(err))
 		return false
 	}
 	defer response.Body.Close()
 
-	return response.StatusCode == http.StatusOK
+	fmt.Println("Response status:", response.StatusCode)
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		zap.S().Error("error reading response body", zap.Error(err))
+	}
+	fmt.Println(string(body))
+
+	return response.StatusCode == http.StatusCreated
 }
