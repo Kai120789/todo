@@ -23,6 +23,19 @@ services:
       - "8082:8082"
     networks:
       - task-net
+  tg-bot:
+    build:
+      context: ..
+      dockerfile: ./build/tg/Dockerfile
+    container_name: tgbot
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8081"
+    networks:
+      - task-net
 
 volumes:
   db-data:

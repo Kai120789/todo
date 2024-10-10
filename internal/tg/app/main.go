@@ -57,7 +57,7 @@ func StartTgBot() {
 
 	go func() {
 		srv := &http.Server{
-			Addr:    "localhost:8081",
+			Addr:    cfg.TgAddress,
 			Handler: r,
 		}
 

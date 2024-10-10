@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"todo/internal/todo/config"
 	"todo/internal/todo/models"
 	"todo/internal/todo/utils"
 
@@ -13,6 +14,11 @@ import (
 )
 
 func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
 	client := http.Client{}
 
 	type Dto struct {
@@ -21,7 +27,7 @@ func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
 		MessageEnded string `json:"message_ended"`
 	}
 
-	urlString := fmt.Sprintf("%s/scheduler", "http://host.docker.internal:8081")
+	urlString := fmt.Sprintf("%s/scheduler", cfg.TelegramAppURL)
 
 	var message, messageEnded string
 

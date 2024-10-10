@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"todo/internal/todo/config"
 	"todo/internal/todo/models"
 
 	"go.uber.org/zap"
 )
 
 func Create(task models.Task, chatID int64) error {
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
 
 	type TaskDtoChatID struct {
 		Title       string `json:"title"`
@@ -21,7 +26,7 @@ func Create(task models.Task, chatID int64) error {
 	}
 
 	client := &http.Client{}
-	createURL := fmt.Sprintf("%s/create-task", "http://host.docker.internal:8081")
+	createURL := fmt.Sprintf("%s/create-task", cfg.TelegramAppURL)
 
 	dto := TaskDtoChatID{
 		Title:       task.Title,
