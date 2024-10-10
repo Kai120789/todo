@@ -37,7 +37,7 @@ func NewUserStore(Conn *pgxpool.Pool, log *zap.Logger) *UserStorage {
 // register new user
 func (d *UserStorage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error) {
 	var id uint
-	query := `INSERT INTO users (username, tg_name, password_hash) VALUES ($1, $2, $3) RETURNING id`
+	query := `INSERT INTO users (username, tg_name, password) VALUES ($1, $2, $3) RETURNING id`
 	err := d.db.QueryRow(context.Background(), query, body.Username, body.TgName, body.PasswordHash).Scan(&id)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (d *UserStorage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, 
 	var id uint
 	var passwordHash string
 
-	query := `SELECT id, password_hash FROM users WHERE username=$1`
+	query := `SELECT id, password FROM users WHERE username=$1`
 	err := d.db.QueryRow(context.Background(), query, body.Username).Scan(&id, &passwordHash)
 	if err != nil {
 		if err == pgx.ErrNoRows {

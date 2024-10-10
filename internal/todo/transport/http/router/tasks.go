@@ -2,7 +2,7 @@ package router
 
 import (
 	"net/http"
-	"todo/internal/todo/middleware/middleware"
+	"todo/internal/todo/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
