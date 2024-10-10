@@ -66,8 +66,8 @@ func StartTgBot() {
 		}
 	}()
 
-	r.Post("/create-task", h.CreateTask) //- достаем из боди дто созданной задачи, форматируем в строку и отправляем в телеграм
-	r.Post("/scheduler", h.Scheduler)    //- достаем из боди массив дто выполненных задачи, форматируем в массив строк и отправляем в телеграм
+	r.Post("/create-task", h.CreateTask)
+	r.Post("/scheduler", h.Scheduler)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -93,12 +93,13 @@ func StartTgBot() {
 
 			switch update.Message.Command() {
 			case "start":
-				fmt.Println(tgUsername, chatID, cfg.ToDoAppURL)
-				if api.AddChatID(tgUsername, chatID, cfg.ToDoAppURL) {
-					bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
-				} else {
+				err := api.AddChatID(tgUsername, chatID, cfg.ToDoAppURL)
+				if err != nil {
 					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при регистрации. Попробуйте снова."))
+					return
 				}
+
+				bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
 			}
 		}
 

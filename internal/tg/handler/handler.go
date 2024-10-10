@@ -28,15 +28,13 @@ func New(t TgHandlerer, logger *zap.Logger) TgHandler {
 
 // Handler для создания задачи
 func (t *TgHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(1)
-
 	var task dto.TaskDtoChatID
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	message := fmt.Sprintf("%s\n%s\n%d", task.Title, task.Description, task.StatusId)
+	message := fmt.Sprintf("%s\nОписание: %s\nСтатус: в процессе", task.Title, task.Description)
 
 	err := t.service.CreateTask(message, task.ChatId)
 	if err != nil {

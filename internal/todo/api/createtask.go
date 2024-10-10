@@ -17,11 +17,11 @@ func Create(task models.Task, chatID int64) error {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		StatusId    uint   `json:"status_id"`
-		ChatId      int64
+		ChatId      int64  `json:"chat_id"`
 	}
 
 	client := &http.Client{}
-	createURL := fmt.Sprintf("%s/create-task", "http://host.docker.internalt:8081")
+	createURL := fmt.Sprintf("%s/create-task", "http://host.docker.internal:8081")
 
 	dto := TaskDtoChatID{
 		Title:       task.Title,
@@ -36,7 +36,7 @@ func Create(task models.Task, chatID int64) error {
 		return err
 	}
 
-	// Создание io.Reader из JSON
+	// create io.Reader from JSON
 	response, err := client.Post(createURL, "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		zap.S().Error("error during user registration", zap.Error(err))

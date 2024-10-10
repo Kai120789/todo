@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// SendDailyReports отправляет ежедневные отчеты в Telegram
 func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
 	client := http.Client{}
 
@@ -22,7 +21,7 @@ func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
 		MessageEnded string `json:"message_ended"`
 	}
 
-	urlString := fmt.Sprintf("%s/scheduler", "http://localhost:8081")
+	urlString := fmt.Sprintf("%s/scheduler", "http://host.docker.internal:8081")
 
 	var message, messageEnded string
 

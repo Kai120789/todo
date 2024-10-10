@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"todo/internal/tg/config"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -35,7 +36,7 @@ func (s *TgService) CreateTask(message string, chatID int64) error {
 		zap.S().Fatal("error init bot", zap.Error(err))
 	}
 
-	bot.Send(tgbotapi.NewMessage(chatID, message))
+	bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Добавлена новая задача:\n\n%s", message)))
 
 	return nil
 }

@@ -376,29 +376,9 @@ func (d *Storage) WriteRefreshToken(userId uint, refreshTokenValue string) error
 }
 
 func (d *Storage) GetChatID(task *models.Task) (*int64, error) {
-	var userID uint
-	query := `SELECT user_id FROM tasks WHERE id=$1`
-	err := d.db.QueryRow(context.Background(), query, task.ID).Scan(&userID)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("user not found")
-		}
-		return nil, err
-	}
-
-	var tgName string
-	query = `SELECT tg_name FROM users WHERE id=$1`
-	err = d.db.QueryRow(context.Background(), query, userID).Scan(&tgName)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("username not found")
-		}
-		return nil, err
-	}
-
 	var chatID int64
-	query = `SELECT chat_id FROM users WHERE tg_name=$1`
-	err = d.db.QueryRow(context.Background(), query, tgName).Scan(&chatID)
+	query := `SELECT chat_id FROM users WHERE id=$1`
+	err := d.db.QueryRow(context.Background(), query, task.UserId).Scan(&chatID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("username not found")
@@ -431,8 +411,9 @@ func (d *Storage) AddChatID(tgName string, chatID int64) error {
 func (d *Storage) GetMyTasks(tgName string, status int) ([]models.Task, *int64, error) {
 	var id, chatID uint
 
-	query := `SELECT id FROM users WHERE tg_name=$1`
+	query := `SELECT id, chat_id FROM users WHERE tg_name=$1`
 	err := d.db.QueryRow(context.Background(), query, tgName).Scan(&id, &chatID)
+	fmt.Println("chatID from DB:", chatID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil, fmt.Errorf("user not found")
@@ -440,7 +421,7 @@ func (d *Storage) GetMyTasks(tgName string, status int) ([]models.Task, *int64, 
 		return nil, nil, err
 	}
 
-	query = `SELECT id, title, description, board_id, created_at, updated_at FROM tasks WHERE user_id=$1 and status_id=$2 ORDER BY updated_at`
+	query = `SELECT * FROM tasks WHERE user_id=$1 and status_id=$2 ORDER BY updated_at`
 	rows, err := d.db.Query(context.Background(), query, id, status)
 	if err != nil {
 		return nil, nil, err
@@ -450,20 +431,20 @@ func (d *Storage) GetMyTasks(tgName string, status int) ([]models.Task, *int64, 
 	var tasks []models.Task
 	for rows.Next() {
 		var task models.Task
-		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.BoardId, &task.CreatedAt, &task.UpdatedAt)
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.BoardId, &task.StatusId, &task.UserId, &task.CreatedAt, &task.UpdatedAt)
 		if err != nil {
 			return nil, nil, err
 		}
 		tasks = append(tasks, task)
 	}
 
-	uintChatID := int64(chatID)
+	intChatID := int64(chatID)
 
-	return tasks, &uintChatID, nil
+	return tasks, &intChatID, nil
 }
 
 func (d *Storage) GetAllUsers() ([]models.TgUser, error) {
-	query := `SELECT tg_name, chat_id FROM users`
+	query := `SELECT id, tg_name, chat_id FROM users`
 	rows, err := d.db.Query(context.Background(), query)
 	if err != nil {
 		return nil, err
@@ -473,7 +454,8 @@ func (d *Storage) GetAllUsers() ([]models.TgUser, error) {
 	var users []models.TgUser
 	for rows.Next() {
 		var user models.TgUser
-		if err := rows.Scan(&user.TgName, &user.ChatID); err != nil {
+		if err := rows.Scan(&user.ID, &user.TgName, &user.ChatID); err != nil {
+			fmt.Println("Error during scanning row:", err)
 			return nil, err
 		}
 		users = append(users, user)
