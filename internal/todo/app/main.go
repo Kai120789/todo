@@ -37,18 +37,28 @@ func StartServer() {
 	defer dbConn.Close()
 
 	// create storage
-	store := storage.New(dbConn, log)
+	db := storage.New(dbConn, log)
 
 	// create service
-	serv := services.New(store, log)
+	s := services.New(services.Storager{
+		BoardsStorager:   &db.BoardsStorage,
+		StatusesStorager: &db.StatusesStorage,
+		TasksStorager:    &db.TasksStorage,
+		UserStorager:     &db.UserStorage,
+	}, log)
 
-	serv.StartScheduler()
+	s.TasksService.StartScheduler()
 
 	// init handler
-	handl := handler.New(serv, log)
+	h := handler.New(handler.TodoService{
+		BoardsService:   &s.BoardsService,
+		StatusesService: &s.StatusesService,
+		TasksService:    &s.TasksService,
+		UserService:     &s.UserService,
+	}, log)
 
 	// init router
-	r := router.New(&handl)
+	r := router.New(&h)
 
 	// start http-server
 	log.Info("starting server", zap.String("address", cfg.ServerAddress))
