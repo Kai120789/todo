@@ -41,6 +41,11 @@ func (h *UserHandler) RegisterNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.Username == "" {
+		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		return
+	}
+
 	passwordHash, err := hash.HashPassword(user.PasswordHash)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -62,6 +67,11 @@ func (h *UserHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	var user dto.PostUserDto
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if user.Username == "" {
+		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
 		return
 	}
 
@@ -122,6 +132,11 @@ func (h *UserHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.Username == "" {
+		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		return
+	}
+
 	_, userID, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -149,6 +164,11 @@ func (h *UserHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 	var user dto.PostUserDto
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if user.Username == "" {
+		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
 		return
 	}
 

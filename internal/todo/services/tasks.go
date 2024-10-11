@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"strconv"
 	"todo/internal/todo/api"
 	"todo/internal/todo/dto"
@@ -34,10 +33,6 @@ func NewTasksService(stor TasksStorager, logger *zap.Logger) *TasksService {
 }
 
 func (t *TasksService) SetTask(body dto.PostTaskDto) error {
-	if body.Title == "" {
-		return fmt.Errorf("task title cannot be empty")
-	}
-
 	task, err := t.storage.SetTask(body)
 	if err != nil {
 		return err
@@ -75,10 +70,6 @@ func (t *TasksService) GetAllTasks() ([]models.Task, error) {
 }
 
 func (t *TasksService) UpdateTask(body dto.PostTaskDto, id uint) error {
-	if body.Title == "" {
-		return fmt.Errorf("task Title is required")
-	}
-
 	_, err := t.storage.UpdateTask(body, id)
 	if err != nil {
 		return err
@@ -88,10 +79,6 @@ func (t *TasksService) UpdateTask(body dto.PostTaskDto, id uint) error {
 }
 
 func (t *TasksService) DeleteTask(id string) error {
-	if id == "" {
-		return fmt.Errorf("task ID is required")
-	}
-
 	Uintid, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		return err

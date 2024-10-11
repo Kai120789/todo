@@ -39,6 +39,11 @@ func (h *TasksHandler) SetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if task.Title == "" {
+		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.service.SetTask(task); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -97,6 +102,11 @@ func (h *TasksHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	var task dto.PostTaskDto
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if task.Title == "" {
+		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
 		return
 	}
 

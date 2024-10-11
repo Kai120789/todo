@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
 
@@ -28,10 +27,6 @@ func NewUserService(stor UserStorager, logger *zap.Logger) *UserService {
 }
 
 func (t *UserService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error) {
-	if body.Username == "" {
-		return nil, fmt.Errorf("task title cannot be empty")
-	}
-
 	token, err := t.storage.RegisterNewUser(body)
 	if err != nil {
 		return nil, err
@@ -41,10 +36,6 @@ func (t *UserService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, 
 }
 
 func (t *UserService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
-	if body.Username == "" {
-		return nil, nil, fmt.Errorf("username cannot be empty")
-	}
-
 	token, id, err := t.storage.AuthorizateUser(body)
 	if err != nil {
 		return nil, nil, err
