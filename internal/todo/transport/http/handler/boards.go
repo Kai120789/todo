@@ -41,6 +41,11 @@ func (h *BoardsHandler) SetBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if board.Name == "" {
+		http.Error(w, "Board name is empty", http.StatusBadRequest)
+		return
+	}
+
 	boardRet, err := h.service.SetBoard(board)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -105,6 +110,11 @@ func (h *BoardsHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if board.Name == "" {
+		http.Error(w, "Board name is empty", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.service.UpdateBoard(board, uint(id)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -136,6 +146,11 @@ func (h *BoardsHandler) User2Board(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u2b.BoardId = id
+
+	if u2b.UserId == "" {
+		http.Error(w, "user ID is required", http.StatusBadRequest)
+		return
+	}
 
 	if err := h.service.User2Board(u2b); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

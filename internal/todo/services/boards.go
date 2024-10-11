@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"strconv"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
@@ -29,10 +28,6 @@ func NewBoardsService(stor BoardsStorager, logger *zap.Logger) *BoardsService {
 }
 
 func (t *BoardsService) SetBoard(body dto.PostBoardDto) (*models.Board, error) {
-	if body.Name == "" {
-		return nil, fmt.Errorf("board name cannot be empty")
-	}
-
 	boardRet, err := t.storage.SetBoard(body)
 	if err != nil {
 		return nil, err
@@ -60,10 +55,6 @@ func (t *BoardsService) GetBoard(id uint) (*models.Board, error) {
 }
 
 func (t *BoardsService) UpdateBoard(body dto.PostBoardDto, id uint) error {
-	if body.Name == "" {
-		return fmt.Errorf("board Name is required")
-	}
-
 	_, err := t.storage.UpdateBoard(body, id)
 	if err != nil {
 		return err
@@ -73,10 +64,6 @@ func (t *BoardsService) UpdateBoard(body dto.PostBoardDto, id uint) error {
 }
 
 func (t *BoardsService) DeleteBoard(id string) error {
-	if id == "" {
-		return fmt.Errorf("board ID is required")
-	}
-
 	Uintid, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		return err
@@ -91,14 +78,6 @@ func (t *BoardsService) DeleteBoard(id string) error {
 }
 
 func (t *BoardsService) User2Board(body dto.PostUser2BoardDto) error {
-	if body.UserId == "" {
-		return fmt.Errorf("user ID is required")
-	}
-
-	if body.BoardId == "" {
-		return fmt.Errorf("board ID is required")
-	}
-
 	err := t.storage.User2Board(body)
 	if err != nil {
 		return err
