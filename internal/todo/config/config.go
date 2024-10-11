@@ -17,6 +17,8 @@ type Config struct {
 	TelegramAppURL string
 }
 
+var AppConfig *Config
+
 func GetConfig() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -59,6 +61,8 @@ func GetConfig() (*Config, error) {
 	}
 
 	flag.Parse()
+
+	AppConfig = cfg
 
 	return cfg, nil
 }

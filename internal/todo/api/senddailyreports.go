@@ -20,16 +20,11 @@ type MessDto struct {
 }
 
 func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	client := http.Client{}
 
 	var messDto []MessDto
 
-	urlString := fmt.Sprintf("%s/scheduler", cfg.TelegramAppURL)
+	urlString := fmt.Sprintf("%s/scheduler", config.AppConfig.TelegramAppURL)
 
 	for _, task := range tasks {
 		task := MessDto{

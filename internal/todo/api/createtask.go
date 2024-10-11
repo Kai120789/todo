@@ -13,11 +13,6 @@ import (
 )
 
 func Create(task models.Task, chatID int64) error {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	type TaskDtoChatID struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
@@ -26,7 +21,7 @@ func Create(task models.Task, chatID int64) error {
 	}
 
 	client := &http.Client{}
-	createURL := fmt.Sprintf("%s/create-task", cfg.TelegramAppURL)
+	createURL := fmt.Sprintf("%s/create-task", config.AppConfig.TelegramAppURL)
 
 	dto := TaskDtoChatID{
 		Title:       task.Title,

@@ -21,15 +21,8 @@ type Claims struct {
 // middleware for Access token check
 func JWT(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// get config (need to fix)
-		cfg, err := config.GetConfig()
-		if err != nil {
-			zap.S().Fatalf("get config error", zap.Error(err))
-			return
-		}
-
 		// logger init
-		zapLog, err := logger.New(cfg.LogLevel)
+		zapLog, err := logger.New(config.AppConfig.LogLevel)
 		if err != nil {
 			zap.S().Fatalf("init logger error", zap.Error(err))
 		}
@@ -63,7 +56,7 @@ func JWT(next http.Handler) http.Handler {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("method is not correct: %v", token.Header["alg"])
 			}
-			return []byte(cfg.SecretKey), nil
+			return []byte(config.AppConfig.SecretKey), nil
 		})
 
 		// check token is valid
