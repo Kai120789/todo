@@ -21,7 +21,7 @@ func GenerateJWT(userID uint, expiresAt time.Time) (string, error) {
 		return "", err
 	}
 
-	// Проверьте, что SecretKey — это строка
+	// check SecretKey is string
 	if cfg.SecretKey == "" {
 		zap.S().Error("Secret key is empty")
 		return "", errors.New("secret key is empty")
