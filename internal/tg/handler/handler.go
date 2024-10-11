@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"todo/internal/tg/dto"
+	"todo/internal/tg/utils"
 
 	"go.uber.org/zap"
 )
@@ -47,15 +48,21 @@ func (t *TgHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 // Handler для обработки расписания
 func (t *TgHandler) Scheduler(w http.ResponseWriter, r *http.Request) {
-	var mess dto.Dto
+	var mess []dto.MessDto
 	if err := json.NewDecoder(r.Body).Decode(&mess); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	message := fmt.Sprintf("%s\n\n%s", mess.Message, mess.MessageEnded)
+	chatID, message, messageEnded := utils.FormatTasksMessage(mess)
+	if chatID == nil {
+		http.Error(w, "chatID is invalid", http.StatusBadRequest)
+		return
+	}
 
-	err := t.service.Scheduler(message, mess.ChatID)
+	tgMessage := fmt.Sprintf("%s\n\n%s", message, messageEnded)
+
+	err := t.service.Scheduler(tgMessage, *chatID)
 	if err != nil {
 		http.Error(w, "No tg user", http.StatusUnauthorized)
 		return

@@ -49,7 +49,7 @@ func StartTgBot() {
 		}
 	}()
 
-	serv := service.New(log)
+	serv := service.New(log, bot)
 
 	h := handler.New(serv, log)
 

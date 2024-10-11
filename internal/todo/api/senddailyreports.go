@@ -8,10 +8,16 @@ import (
 	"net/http"
 	"todo/internal/todo/config"
 	"todo/internal/todo/models"
-	"todo/internal/todo/utils"
 
 	"go.uber.org/zap"
 )
+
+type MessDto struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	StatusId    uint   `json:"status_id"`
+	ChatId      int64
+}
 
 func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
 	cfg, err := config.GetConfig()
@@ -21,31 +27,21 @@ func SendDailyReports(tasks []models.Task, chatID int64, status int) error {
 
 	client := http.Client{}
 
-	type Dto struct {
-		ChatID       int64  `json:"chat_id"`
-		Message      string `json:"message"`
-		MessageEnded string `json:"message_ended"`
-	}
+	var messDto []MessDto
 
 	urlString := fmt.Sprintf("%s/scheduler", cfg.TelegramAppURL)
 
-	var message, messageEnded string
-
-	if status == 1 {
-		message = utils.FormatTasksMessage(tasks)
+	for _, task := range tasks {
+		task := MessDto{
+			Title:       task.Title,
+			Description: task.Description,
+			StatusId:    task.StatusId,
+			ChatId:      chatID,
+		}
+		messDto = append(messDto, task)
 	}
 
-	if status == 2 {
-		messageEnded = utils.FormatEndedTasksMessage(tasks)
-	}
-
-	dto := Dto{
-		ChatID:       chatID,
-		Message:      message,
-		MessageEnded: messageEnded,
-	}
-
-	jsonStr, err := json.Marshal(dto)
+	jsonStr, err := json.Marshal(messDto)
 	if err != nil {
 		zap.S().Error("error marshalling DTO", zap.Error(err))
 		return err
