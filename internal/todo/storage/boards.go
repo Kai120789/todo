@@ -46,7 +46,7 @@ func (d *BoardsStorage) SetBoard(body dto.PostBoardDto) (*models.Board, error) {
 
 // get all boards
 func (d *BoardsStorage) GetAllBoards() ([]models.Board, error) {
-	query := `SELECT id, name, created_at, updated_at from boards ORDER BY created_at`
+	query := `SELECT id, name, created_at, updated_at FROM boards ORDER BY created_at`
 	rows, err := d.db.Query(context.Background(), query)
 	if err != nil {
 		return nil, err
