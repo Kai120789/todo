@@ -168,7 +168,7 @@ func (h *UserHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Username == "" {
-		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		http.Error(w, "username cannot be empty", http.StatusBadRequest)
 		return
 	}
 
