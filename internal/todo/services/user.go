@@ -28,6 +28,13 @@ func NewUserService(stor UserStorager, logger *zap.Logger) *UserService {
 }
 
 func (t *UserService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error) {
+	passwordHash, err := hash.HashPassword(body.PasswordHash)
+	if err != nil {
+		return nil, err
+	}
+
+	body.PasswordHash = passwordHash
+
 	token, err := t.storage.RegisterNewUser(body)
 	if err != nil {
 		return nil, err

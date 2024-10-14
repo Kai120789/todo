@@ -6,7 +6,6 @@ import (
 	"time"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
-	"todo/internal/todo/utils/hash"
 	"todo/internal/todo/utils/tokens"
 
 	"go.uber.org/zap"
@@ -42,17 +41,9 @@ func (h *UserHandler) RegisterNewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Username == "" {
-		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		http.Error(w, "username cannot be empty", http.StatusBadRequest)
 		return
 	}
-
-	passwordHash, err := hash.HashPassword(user.PasswordHash)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	user.PasswordHash = passwordHash
 
 	if _, err := h.service.RegisterNewUser(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -71,7 +62,7 @@ func (h *UserHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Username == "" {
-		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		http.Error(w, "username cannot be empty", http.StatusBadRequest)
 		return
 	}
 
@@ -133,7 +124,7 @@ func (h *UserHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Username == "" {
-		http.Error(w, "task title cannot be empty", http.StatusBadRequest)
+		http.Error(w, "username cannot be empty", http.StatusBadRequest)
 		return
 	}
 
