@@ -23,15 +23,13 @@ func StartTgBot() {
 	// init config
 	cfg, err := config.GetConfig()
 	if err != nil {
-		// Не будет работать
-		zap.S().Fatal("error load config", zap.Error(err))
 		fmt.Println(err.Error())
 	}
 
 	// init logger
 	zapLog, err := logger.New(cfg.LogLevel)
 	if err != nil {
-		zap.S().Fatalf("init logger error", zap.Error(err))
+		fmt.Println(err.Error())
 	}
 
 	log := zapLog.ZapLogger
