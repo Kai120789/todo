@@ -23,7 +23,9 @@ func StartTgBot() {
 	// init config
 	cfg, err := config.GetConfig()
 	if err != nil {
+		// Не будет работать
 		zap.S().Fatal("error load config", zap.Error(err))
+		fmt.Println(err.Error())
 	}
 
 	// init logger
@@ -41,8 +43,6 @@ func StartTgBot() {
 	}
 	log.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
 
-	_ = log
-
 	go func() {
 		for range time.Tick(1 * time.Second) {
 			gocron.RunPending()
@@ -55,12 +55,12 @@ func StartTgBot() {
 
 	r := chi.NewRouter()
 
-	go func() {
-		srv := &http.Server{
-			Addr:    cfg.TgAddress,
-			Handler: r,
-		}
+	srv := &http.Server{
+		Addr:    cfg.TgAddress,
+		Handler: r,
+	}
 
+	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Error("failed to start server", zap.Error(err))
 		}

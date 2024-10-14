@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
-	"todo/internal/todo/utils/hash"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,7 +17,7 @@ type UserStorage struct {
 
 type UserStorager interface {
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*uint, *string, error)
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
@@ -52,7 +51,7 @@ func (d *UserStorage) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, 
 }
 
 // login user
-func (d *UserStorage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
+func (d *UserStorage) AuthorizateUser(body dto.PostUserDto) (*uint, *string, error) {
 	var id uint
 	var passwordHash string
 
@@ -65,16 +64,7 @@ func (d *UserStorage) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, 
 		return nil, nil, err
 	}
 
-	if !hash.CheckPasswordHash(body.PasswordHash, passwordHash) {
-		return nil, nil, err
-	}
-
-	userRet, err := d.GetAuthUser(id)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return userRet, &id, nil
+	return &id, &passwordHash, nil
 }
 
 // get auth user

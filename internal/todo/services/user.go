@@ -3,6 +3,7 @@ package services
 import (
 	"todo/internal/todo/dto"
 	"todo/internal/todo/models"
+	"todo/internal/todo/utils/hash"
 
 	"go.uber.org/zap"
 )
@@ -13,7 +14,7 @@ type UserService struct {
 
 type UserStorager interface {
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*uint, *string, error)
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
@@ -35,13 +36,17 @@ func (t *UserService) RegisterNewUser(body dto.PostUserDto) (*models.UserToken, 
 	return token, nil
 }
 
-func (t *UserService) AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error) {
-	token, id, err := t.storage.AuthorizateUser(body)
+func (t *UserService) AuthorizateUser(body dto.PostUserDto) (*uint, error) {
+	id, passwordHash, err := t.storage.AuthorizateUser(body)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return token, id, nil
+	if !hash.CheckPasswordHash(body.PasswordHash, *passwordHash) {
+		return nil, err
+	}
+
+	return id, nil
 }
 
 func (t *UserService) GetAuthUser(id uint) (*models.UserToken, error) {

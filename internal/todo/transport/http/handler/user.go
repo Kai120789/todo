@@ -19,7 +19,7 @@ type UserHandler struct {
 
 type UserHandlerer interface {
 	RegisterNewUser(body dto.PostUserDto) (*models.UserToken, error)
-	AuthorizateUser(body dto.PostUserDto) (*models.UserToken, *uint, error)
+	AuthorizateUser(body dto.PostUserDto) (*uint, error)
 	WriteRefreshToken(userId uint, refreshTokenValue string) error
 	GetAuthUser(id uint) (*models.UserToken, error)
 	UserLogout(id uint) error
@@ -75,7 +75,7 @@ func (h *UserHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, userID, err := h.service.AuthorizateUser(user)
+	userID, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -137,7 +137,7 @@ func (h *UserHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, userID, err := h.service.AuthorizateUser(user)
+	userID, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -172,7 +172,7 @@ func (h *UserHandler) UserLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, userID, err := h.service.AuthorizateUser(user)
+	userID, err := h.service.AuthorizateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
