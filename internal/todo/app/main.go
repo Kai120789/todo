@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"todo/internal/todo/config"
 	"todo/internal/todo/services"
@@ -17,13 +18,13 @@ func StartServer() {
 	// get config
 	cfg, err := config.GetConfig()
 	if err != nil {
-		zap.S().Fatalf("get config error", zap.Error(err))
+		fmt.Println(err.Error())
 	}
 
 	// init logger
 	zapLog, err := logger.New(cfg.LogLevel)
 	if err != nil {
-		zap.S().Fatalf("init logger error", zap.Error(err))
+		fmt.Println(err.Error())
 	}
 
 	log := zapLog.ZapLogger
