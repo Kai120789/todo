@@ -15,6 +15,7 @@ type TasksHandler interface {
 	GetTask(w http.ResponseWriter, r *http.Request)
 	UpdateTask(w http.ResponseWriter, r *http.Request)
 	DeleteTask(w http.ResponseWriter, r *http.Request)
+	SendAllTasks(w http.ResponseWriter, r *http.Request)
 }
 
 func NewTasksRouter() *TasksRouter {
@@ -31,4 +32,6 @@ func (b *TasksRouter) TasksRoutes(r chi.Router, h TasksHandler) {
 		r.Put("/{id}", h.UpdateTask)    // update task
 		r.Delete("/{id}", h.DeleteTask) // delete task
 	})
+
+	r.Post("/sendtasks", h.SendAllTasks)
 }

@@ -16,7 +16,7 @@ type MessDto struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	StatusId    uint   `json:"status_id"`
-	ChatId      int64
+	ChatId      int64  `json:"chat_id"`
 }
 
 func SendDailyReports(tasks []models.Task, chatID int64, status int) error {

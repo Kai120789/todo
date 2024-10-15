@@ -54,15 +54,13 @@ func (t *TgHandler) Scheduler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatID, message, messageEnded := utils.FormatTasksMessage(mess)
+	chatID, message := utils.FormatTasksMessage(mess)
 	if chatID == nil {
 		http.Error(w, "chatID is invalid", http.StatusBadRequest)
 		return
 	}
 
-	tgMessage := fmt.Sprintf("%s\n\n%s", message, messageEnded)
-
-	err := t.service.Scheduler(tgMessage, *chatID)
+	err := t.service.Scheduler(message, *chatID)
 	if err != nil {
 		http.Error(w, "No tg user", http.StatusUnauthorized)
 		return

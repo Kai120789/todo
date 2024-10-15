@@ -92,6 +92,30 @@ func (t *TasksService) DeleteTask(id string) error {
 	return nil
 }
 
+func (t *TasksService) SendAllTasks(tgName string, chatID int64) error {
+	message, _, err := t.storage.GetMyTasks(tgName, 1)
+	if err != nil {
+		zap.S().Error("Ошибка получения задач для пользователя", zap.String("tgName", tgName), zap.Error(err))
+		return err
+	}
+	err = api.SendDailyReports(message, chatID, 1)
+	if err != nil {
+		return err
+	}
+
+	message, _, err = t.storage.GetMyTasks(tgName, 2)
+	if err != nil {
+		zap.S().Error("Ошибка получения выполненных задач для пользователя", zap.String("tgName", tgName), zap.Error(err))
+		return err
+	}
+	err = api.SendDailyReports(message, chatID, 2)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (t *TasksService) SendDailyReport() {
 	users, err := t.storage.GetAllUsers()
 	if err != nil {

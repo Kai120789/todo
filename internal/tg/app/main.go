@@ -98,6 +98,12 @@ func StartTgBot() {
 				}
 
 				bot.Send(tgbotapi.NewMessage(chatID, "Вы зарегистрированы!"))
+			case "tasks":
+				err := api.SendAllTasks(tgUsername, chatID, cfg.ToDoAppURL)
+				if err != nil {
+					bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при получении списка задач. Попробуйте снова."))
+					return
+				}
 			}
 		}
 

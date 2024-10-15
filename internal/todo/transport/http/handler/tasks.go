@@ -22,6 +22,7 @@ type TasksHandlerer interface {
 	GetAllTasks() ([]models.Task, error)
 	UpdateTask(body dto.PostTaskDto, id uint) error
 	DeleteTask(id string) error
+	SendAllTasks(tgName string, chatID int64) error
 }
 
 func NewTasksHandler(t TasksHandlerer, logger *zap.Logger) TasksHandler {
@@ -130,4 +131,20 @@ func (h *TasksHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *TasksHandler) SendAllTasks(w http.ResponseWriter, r *http.Request) {
+	var user dto.PostUserDto
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	err := h.service.SendAllTasks(user.TgName, user.ChatID)
+	if err != nil {
+		http.Error(w, "No tg user", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
