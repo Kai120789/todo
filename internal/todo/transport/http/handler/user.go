@@ -113,7 +113,6 @@ func (h *UserHandler) AuthorizateUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(accessTokenValue)
-	w.WriteHeader(http.StatusOK)
 }
 
 // Get active user
@@ -148,7 +147,6 @@ func (h *UserHandler) GetAuthUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(userID)
-	w.WriteHeader(http.StatusOK)
 }
 
 // Logout user
